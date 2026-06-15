@@ -1,6 +1,6 @@
 {
   "name": "obsidian-cascade",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Cascade plugin for Obsidian.",
   "private": true,
   "scripts": {
@@ -26,6 +26,10 @@
   "commit-and-tag-version": {
     "tagPrefix": "v",
     "releaseCommitMessageFormat": "chore(release): {{currentTag}}",
-    "bumpFiles": ["package.json", "package-lock.json", "manifest.json"]
+    "bumpFiles": [
+      "package.json",
+      "package-lock.json",
+      "manifest.json"
+    ]
   }
 }
