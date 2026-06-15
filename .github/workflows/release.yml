@@ -1,0 +1,42 @@
+name: Release Obsidian plugin
+
+on:
+  push:
+    # Este workflow será ativado sempre que você subir uma nova tag (ex: v0.1.0)
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    # Necessário para que a Action tenha permissão de criar a Release no seu repositório
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Compile plugin
+        run: npm run compile
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # Os arquivos finais gerados que o Obsidian precisa para instalar o plugin
+          files: |
+            main.js
+            manifest.json
+            styles.css
+          # Opcional: cria o release como rascunho (draft) ou pré-lançamento (prerelease) se quiser
+          draft: false
+          prerelease: false
