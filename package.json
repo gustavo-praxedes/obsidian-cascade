@@ -25,6 +25,7 @@
   },
   "commit-and-tag-version": {
     "tagPrefix": "v",
-    "releaseCommitMessageFormat": "chore(release): {{currentTag}}"
+    "releaseCommitMessageFormat": "chore(release): {{currentTag}}",
+    "bumpFiles": ["package.json", "package-lock.json", "manifest.json"]
   }
 }

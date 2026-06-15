@@ -21,23 +21,37 @@ export class FrontmatterService {
 
   async initialize(file: TFile): Promise<void> {
     if (!this.settings.frontmatterEnabled || this.ignored(file.path)) return;
-    await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
-      const now = formatFrontmatterDate(new Date());
-      frontmatter[this.settings.frontmatterCreatedKey] ??= now;
-      frontmatter[this.settings.frontmatterUpdatedKey] = now;
-    });
+    if (!this.app.vault.getAbstractFileByPath(file.path)) return;
+    try {
+      await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+        const now = formatFrontmatterDate(new Date());
+        frontmatter[this.settings.frontmatterCreatedKey] ??= now;
+        frontmatter[this.settings.frontmatterUpdatedKey] = now;
+      });
+    } catch (error) {
+      if (!isMissingFileError(error)) throw error;
+    }
   }
 
   private async touch(file: TFile): Promise<void> {
-    await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
-      frontmatter[this.settings.frontmatterCreatedKey] ??= formatFrontmatterDate(new Date(file.stat.ctime));
-      frontmatter[this.settings.frontmatterUpdatedKey] = formatFrontmatterDate(new Date());
-    });
+    if (!this.app.vault.getAbstractFileByPath(file.path)) return;
+    try {
+      await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+        frontmatter[this.settings.frontmatterCreatedKey] ??= formatFrontmatterDate(new Date(file.stat.ctime));
+        frontmatter[this.settings.frontmatterUpdatedKey] = formatFrontmatterDate(new Date());
+      });
+    } catch (error) {
+      if (!isMissingFileError(error)) throw error;
+    }
   }
 
   private ignored(path: string): boolean {
     return this.settings.frontmatterIgnoredPaths.some((prefix) => path.startsWith(prefix));
   }
+}
+
+function isMissingFileError(error: unknown): boolean {
+  return error instanceof Error && /ENOENT|no such file/i.test(error.message);
 }
 
 function formatFrontmatterDate(date: Date): string {

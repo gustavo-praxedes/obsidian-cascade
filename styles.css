@@ -1,47 +1,243 @@
 .cascade-calendar {
-  --cascade-border: var(--background-modifier-border);
+  --cascade-accent: #6d9cff;
+  --cascade-muted: var(--text-faint);
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
+  gap: 12px;
+  padding: 22px 24px;
 }
 
 .cascade-calendar__toolbar {
   align-items: center;
   display: flex;
-  gap: 8px;
   justify-content: space-between;
+}
+
+.cascade-calendar__title {
+  align-items: baseline;
+  display: flex;
+  gap: 6px;
+  letter-spacing: 0;
+}
+
+.cascade-calendar__month {
+  color: var(--text-normal);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.cascade-calendar__year {
+  color: var(--cascade-accent);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.cascade-calendar__controls {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.cascade-calendar__nav,
+.cascade-calendar__today {
+  align-items: center;
+  appearance: none;
+  background: transparent !important;
+  border: 0;
+  box-shadow: none !important;
+  color: var(--text-muted);
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+}
+
+.cascade-calendar__nav {
+  width: 28px;
+}
+
+.cascade-calendar__today {
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0;
+  min-width: 32px;
+}
+
+.cascade-calendar__nav:hover,
+.cascade-calendar__today:hover {
+  background: transparent !important;
+  color: var(--text-normal);
+  box-shadow: none !important;
 }
 
 .cascade-calendar__header,
 .cascade-calendar__grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 4px;
 }
 
-.cascade-calendar__day,
 .cascade-calendar__weekday {
   align-items: center;
-  aspect-ratio: 1;
-  border: 1px solid var(--cascade-border);
-  border-radius: 6px;
   display: flex;
   justify-content: center;
-  min-width: 0;
+}
+
+.cascade-calendar__weekday {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  height: 34px;
+  letter-spacing: 0;
 }
 
 .cascade-calendar__day {
-  background: var(--background-primary);
+  align-items: center;
+  appearance: none;
+  background: transparent !important;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: none !important;
+  color: var(--text-normal);
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  height: 34px;
+  justify-content: center;
+  min-width: 0;
+  padding: 0;
+}
+
+.cascade-calendar__day:hover {
+  background: var(--background-modifier-hover) !important;
+  box-shadow: none !important;
+}
+
+.cascade-calendar__number {
+  line-height: 16px;
 }
 
 .cascade-calendar__day.is-today {
-  border-color: var(--interactive-accent);
-  color: var(--interactive-accent);
+  background: var(--cascade-accent) !important;
+  border-color: var(--cascade-accent);
+  color: white;
   font-weight: 700;
 }
 
-.cascade-calendar__day.has-note {
-  background: var(--background-modifier-hover);
+.cascade-calendar__day.is-outside {
+  color: var(--cascade-muted);
+  opacity: 0.55;
+}
+
+.cascade-calendar__dot {
+  background: var(--text-muted);
+  border-radius: 50%;
+  display: block;
+  height: 3px;
+  margin-top: 2px;
+  opacity: 0.85;
+  width: 3px;
+}
+
+.cascade-calendar__day.is-outside .cascade-calendar__dot {
+  opacity: 0.25;
+}
+
+.cascade-calendar__day.is-today .cascade-calendar__dot {
+  background: white;
+}
+
+.cascade-status-preview ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 8px 0 12px;
+  padding: 0;
+}
+
+.cascade-status-preview__item {
+  align-items: center;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  display: inline-flex;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 8px;
+}
+
+.cascade-status-preview__lock {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.cascade-settings-section {
+  border-top: 1px solid var(--background-modifier-border);
+  margin-top: 12px;
+  padding-top: 8px;
+}
+
+.cascade-settings-section > summary {
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 8px 0;
+  user-select: none;
+}
+
+.cascade-settings-section__content {
+  padding-bottom: 6px;
+}
+
+.cascade-status-preview .task-list-item-checkbox,
+.setting-item-name .task-list-item-checkbox {
+  margin-inline-end: 8px;
+  vertical-align: middle;
+}
+
+.cascade-checkbox-menu-widget {
+  --menu-bg: var(--background-primary);
+  --menu-border: var(--background-modifier-border);
+  --menu-hover: var(--background-modifier-hover);
+  background: var(--menu-bg);
+  border: 1px solid var(--menu-border);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px var(--background-modifier-box-shadow);
+  box-sizing: border-box;
+  display: flex;
+  left: 0;
+  padding: 4px 3px;
+  position: fixed;
+  top: 0;
+  z-index: 1000;
+}
+
+.cascade-checkbox-menu-widget ul {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cascade-checkbox-menu-widget__item {
+  align-items: center;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  margin: 0;
+  padding: 2px;
+}
+
+.cascade-checkbox-menu-widget__item:hover,
+.cascade-checkbox-menu-widget__item.is-active {
+  background: var(--menu-hover);
+}
+
+.cascade-checkbox-menu-widget .task-list-item-checkbox {
+  margin: 0;
 }

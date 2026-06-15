@@ -6,6 +6,8 @@ export const enUS = {
   openTodayOnStartup: "Open today on startup",
   runMigrationOnStartup: "Run migration on startup",
   runNormalizerOnStartup: "Run normalizer on startup",
+  migrationEnabled: "Enable task migration",
+  cancelExpiredScheduled: "Cancel expired scheduled tasks",
   openToday: "Open daily note",
   createDaily: "Create daily note",
   reprocess: "Reprocess migration",

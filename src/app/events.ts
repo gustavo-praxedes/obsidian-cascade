@@ -1,6 +1,8 @@
 import { TFile, type EventRef, type Vault } from "obsidian";
 import { FrontmatterService } from "../notes/frontmatter-service";
 import { NormalizerService } from "../notes/normalizer-service";
+import { ScheduledTaskService } from "../tasks/scheduled-task-service";
+import { TaskFamilyService } from "../tasks/task-family-service";
 
 export class EventRegistry {
   private refs: EventRef[] = [];
@@ -9,6 +11,8 @@ export class EventRegistry {
     private readonly vault: Vault,
     private readonly normalizer: NormalizerService,
     private readonly frontmatter: FrontmatterService,
+    private readonly taskFamilies: TaskFamilyService,
+    private readonly scheduledTasks: ScheduledTaskService,
   ) {}
 
   register(): void {
@@ -20,7 +24,11 @@ export class EventRegistry {
         }
       }),
       this.vault.on("modify", (file) => {
-        if (file instanceof TFile) this.frontmatter.schedule(file);
+        if (file instanceof TFile) {
+          this.frontmatter.schedule(file);
+          this.taskFamilies.schedule(file);
+          this.scheduledTasks.schedule(file);
+        }
       }),
     );
   }

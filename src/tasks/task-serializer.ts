@@ -56,6 +56,82 @@ export function markCancelled(line: string): string {
   return withTaskStatus(line, "-");
 }
 
+export function prepareMigratedBlock(block: string): string {
+  const lines = String(block || "").split(/\r?\n/);
+  const prepared: string[] = [];
+  let keepFollowingText = false;
+  for (const [index, line] of lines.entries()) {
+    if (index === 0) {
+      prepared.push(toOpenTask(line));
+      keepFollowingText = true;
+      continue;
+    }
+    const match = line.match(/^(\s*)-\s+\[([^\]])\]/);
+    if (match) {
+      keepFollowingText = match[2] === " ";
+      if (keepFollowingText) prepared.push(line);
+      continue;
+    }
+    if (keepFollowingText && /^\s+/.test(line)) prepared.push(line);
+  }
+  return prepared.join("\n");
+}
+
+export function markMigratedTaskBlockInContent(content: string, task: TaskBlock): string {
+  const lines = String(content || "").split(/\r?\n/);
+  const start = lines.findIndex((line) => line === task.line);
+  if (start === -1) return content;
+  const parentIndent = task.line.match(/^\s*/)?.[0].length ?? 0;
+  lines[start] = markMigrated(lines[start]);
+  for (let index = start + 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    const match = line.match(/^(\s*)-\s+\[([^\]])\]/);
+    if (match && match[1].length <= parentIndent) break;
+    if (/^#{1,6}\s+/.test(line)) break;
+    if (match?.[2] === " ") lines[index] = markMigrated(line);
+  }
+  return lines.join("\n");
+}
+
+export function markOpenChildrenOfMigratedBlocks(content: string): string {
+  const lines = String(content || "").split(/\r?\n/);
+  for (let index = 0; index < lines.length; index += 1) {
+    const parent = lines[index].match(/^-\s+\[([^\]])\]/);
+    if (!parent || parent[1] !== ">") continue;
+    for (let child = index + 1; child < lines.length; child += 1) {
+      if (/^- \[[^\]]+\]/.test(lines[child]) || /^#{1,6}\s+/.test(lines[child])) break;
+      if (/^\s+-\s+\[ \]/.test(lines[child])) lines[child] = markMigrated(lines[child]);
+    }
+  }
+  return lines.join("\n");
+}
+
+export function removeMigratedChildrenFromOpenBlocks(content: string): string {
+  const lines = String(content || "").split(/\r?\n/);
+  const output: string[] = [];
+  let dropping = false;
+  let droppedIndent = 0;
+  for (const line of lines) {
+    const root = line.match(/^-\s+\[([^\]])\]/);
+    const child = line.match(/^(\s+)-\s+\[([^\]])\]/);
+    const heading = /^#{1,6}\s+/.test(line);
+    if (root || heading || !line.trim()) dropping = false;
+    if (dropping) {
+      const indent = line.match(/^\s*/)?.[0].length ?? 0;
+      if (indent > droppedIndent) continue;
+      dropping = false;
+    }
+    if (child?.[2] === ">") {
+      dropping = true;
+      droppedIndent = child[1].length;
+      continue;
+    }
+    output.push(line);
+  }
+  return output.join("\n");
+}
+
+
 export function markMigratedInSection(content: string, heading: string | RegExp | ((line: string) => boolean), tasks: TaskBlock[]): string {
   return replaceTasks(content, heading, tasks, markMigrated);
 }
@@ -67,22 +143,24 @@ export function markMigratedInRoot(content: string, tasks: TaskBlock[]): string 
 export function insertAfterH1(content: string, linesToInsert: string[]): string {
   if (!linesToInsert.length) return content;
   const lines = String(content || "").split(/\r?\n/);
+  const separated = separateTaskBlocks(linesToInsert);
   const index = lines.findIndex((line) => /^#\s+/.test(line));
-  if (index === -1) return `${linesToInsert.join("\n")}\n\n${content}`;
+  if (index === -1) return `${separated.join("\n")}\n\n${content}`;
   let at = index + 1;
   while (at < lines.length && lines[at].trim() === "") at += 1;
-  lines.splice(at, 0, ...linesToInsert, "");
+  lines.splice(at, 0, ...separated, "");
   return lines.join("\n");
 }
 
 export function insertIntoSection(content: string, heading: string | RegExp | ((line: string) => boolean), linesToInsert: string[]): string {
   if (!linesToInsert.length) return content;
   const lines = String(content || "").split(/\r?\n/);
+  const separated = separateTaskBlocks(linesToInsert);
   const bounds = sectionBounds(content, heading);
   if (!bounds) throw new Error("Secao de log nao encontrada para inserir tarefas.");
   let at = bounds[0] + 1;
   while (at < bounds[1] && lines[at].trim() === "") at += 1;
-  lines.splice(at, 0, ...linesToInsert, "");
+  lines.splice(at, 0, ...separated, "");
   return lines.join("\n");
 }
 
@@ -127,6 +205,25 @@ export function replaceTaskInSectionByLooseKey(content: string, heading: string 
   return content;
 }
 
+export function normalizeRootTaskSpacing(content: string): string {
+  return normalizeLogSpacing(content);
+}
+
+export function normalizeLogSpacing(content: string): string {
+  const normalized = String(content || "");
+  const lines = normalized.split(/\r?\n/);
+  const output: string[] = [];
+  for (const line of lines) {
+    const previous = previousNonEmpty(output);
+    if ((isRootTask(line) || isHeading(line)) && output.length && output[output.length - 1] !== "" && isTaskBlockLine(previous)) {
+      output.push("");
+    }
+    output.push(line);
+  }
+  const result = output.join("\n");
+  return normalized.endsWith("\n") && !result.endsWith("\n") ? `${result}\n` : result;
+}
+
 function replaceTasks(
   content: string,
   heading: string | RegExp | ((line: string) => boolean),
@@ -152,4 +249,27 @@ function occurrenceMarker(line: string): string {
   if (metadataDate(line, "⏳")) return "⏳";
   if (metadataDate(line, "🛫")) return "🛫";
   return "📅";
+}
+
+function separateTaskBlocks(lines: string[]): string[] {
+  return lines.flatMap((line, index) => (index === 0 ? [line] : ["", line]));
+}
+
+function isRootTask(line: string): boolean {
+  return /^- \[[^\]]+\]/.test(line);
+}
+
+function isTaskBlockLine(line: string): boolean {
+  return /^- \[[^\]]+\]/.test(line) || /^\s+/.test(line);
+}
+
+function isHeading(line: string): boolean {
+  return /^#{1,6}\s+/.test(line);
+}
+
+function previousNonEmpty(lines: string[]): string {
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    if (lines[index].trim()) return lines[index];
+  }
+  return "";
 }

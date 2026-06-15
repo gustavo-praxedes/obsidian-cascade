@@ -92,6 +92,10 @@ export function isUsefulTask(task: TaskBlock): boolean {
   return Boolean(task.text.trim()) && !["x", "-"].includes(task.status);
 }
 
+export function isOpenTask(task: TaskBlock): boolean {
+  return task.status === " " && Boolean(task.text.trim());
+}
+
 export function taskKey(taskOrText: TaskBlock | string): string {
   return normalizedTaskKey(typeof taskOrText === "string" ? taskOrText : taskOrText.line, false);
 }

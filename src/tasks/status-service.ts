@@ -7,6 +7,10 @@ export class StatusService {
     return [...this.settings.essentialStatuses, ...this.settings.customStatuses];
   }
 
+  menuStatuses(): StatusDef[] {
+    return [...this.settings.essentialStatuses, ...this.settings.customStatuses.filter((status) => status.showInMenu !== false)];
+  }
+
   get(symbol: string): StatusDef | undefined {
     return this.all().find((status) => status.symbol === symbol);
   }

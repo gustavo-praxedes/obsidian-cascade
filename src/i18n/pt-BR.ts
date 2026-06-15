@@ -6,6 +6,8 @@ export const ptBR = {
   openTodayOnStartup: "Abrir hoje ao iniciar",
   runMigrationOnStartup: "Migrar tarefas ao iniciar",
   runNormalizerOnStartup: "Normalizar arquivos ao iniciar",
+  migrationEnabled: "Migracao de tarefas ativa",
+  cancelExpiredScheduled: "Cancelar tarefas agendadas vencidas",
   openToday: "Abrir nota diaria",
   createDaily: "Criar nota diaria",
   reprocess: "Reprocessar migracao",

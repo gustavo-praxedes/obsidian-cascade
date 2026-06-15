@@ -1,16 +1,21 @@
 import { Notice, type Plugin } from "obsidian";
 import { CalendarView, CASCADE_CALENDAR_VIEW } from "../calendar/calendar-view";
+import { CalendarService } from "../calendar/calendar-service";
 import { MigrationService } from "../tasks/migration-service";
 import { NoteService } from "../notes/note-service";
 import type { I18n } from "../i18n";
+import type { CascadeSettings } from "../config/schema";
 
-export function registerCommands(plugin: Plugin, i18n: I18n, notes: NoteService, migration: MigrationService): void {
+type CascadePluginLike = Plugin & { settings: CascadeSettings };
+
+export function registerCommands(plugin: CascadePluginLike, i18n: I18n, notes: NoteService, migration: MigrationService, calendar: CalendarService): void {
   plugin.addCommand({
     id: "open-today",
     name: i18n.t("openToday"),
     callback: async () => {
       try {
         await notes.openToday();
+        if (plugin.settings.runMigrationOnManualOpen) await migration.run();
       } catch (error) {
         console.error(error);
         new Notice(i18n.t("noticeOpenTodayFailed"));
@@ -50,5 +55,5 @@ export function registerCommands(plugin: Plugin, i18n: I18n, notes: NoteService,
     },
   });
 
-  plugin.registerView(CASCADE_CALENDAR_VIEW, (leaf) => new CalendarView(leaf, notes));
+  plugin.registerView(CASCADE_CALENDAR_VIEW, (leaf) => new CalendarView(leaf, notes, calendar));
 }

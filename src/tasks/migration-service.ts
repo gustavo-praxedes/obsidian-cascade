@@ -9,9 +9,12 @@ import {
   extractRootTasks,
   extractSectionTasks,
   extractTasksWithSubtasks,
+  isOpenTask,
   metadataDate,
   migratedHeadingPredicate,
   monthPredicate,
+  scheduledDate,
+  startDate,
   taskLooseKey,
 } from "./task-parser";
 import { RecurrenceService } from "./recurrence-service";
@@ -19,6 +22,11 @@ import {
   insertIntoSection,
   markCancelled,
   markMigrated,
+  markMigratedTaskBlockInContent,
+  markOpenChildrenOfMigratedBlocks,
+  normalizeLogSpacing as normalizeLogTextSpacing,
+  prepareMigratedBlock,
+  removeMigratedChildrenFromOpenBlocks,
   prepareRecurringTask,
   uniqueNewPreparedTasks,
 } from "./task-serializer";
@@ -41,7 +49,9 @@ export class MigrationService {
       await this.migrateAnnualToMonthly(date);
       await this.seedMonthlyRecurring(date);
       await this.migrateMonthlyToDaily(date);
-      await this.migratePreviousDay(date);
+      await this.migratePreviousDays(date);
+      await this.removeFutureScheduledFromDaily(date);
+      await this.normalizeLogSpacing(date);
     });
   }
 
@@ -84,12 +94,12 @@ export class MigrationService {
     let monthly = await this.files.read(monthlyPath);
     const info = this.paths.dateInfo(date);
     const pred = monthPredicate(info.monthName);
-    const pending = extractSectionTasks(annual, pred).filter((task) => !/\bevery\b/i.test(task.line));
+    const pending = extractSectionTasks(annual, pred).filter((task) => isOpenTask(task) && !/\bevery\b/i.test(task.line));
     if (!pending.length) return;
-    const unique = uniqueNewPreparedTasks(extractTasksWithSubtasks(monthly), pending.map((task) => task.line));
+    const unique = uniqueNewPreparedTasks(extractTasksWithSubtasks(monthly), pending.map((task) => prepareMigratedBlock(task.block)));
     monthly = insertAfterH1Compat(monthly, unique);
     let updatedAnnual = annual;
-    for (const task of pending) updatedAnnual = updatedAnnual.replace(task.line, markMigrated(task.line));
+    for (const task of pending) updatedAnnual = markMigratedTaskBlockInContent(updatedAnnual, task);
     await this.files.write(monthlyPath, monthly);
     await this.files.write(annualPath, updatedAnnual);
   }
@@ -115,6 +125,7 @@ export class MigrationService {
       }
     }
     await this.files.write(monthlyPath, updated);
+    await this.markAnnualRecurringMigrated(date);
   }
 
   async migrateMonthlyToDaily(date = new Date()): Promise<void> {
@@ -123,38 +134,95 @@ export class MigrationService {
     const monthly = await this.files.read(monthlyPath);
     const daily = await this.files.read(dailyPath);
     const info = this.paths.dateInfo(date);
-    const rootTasks = extractRootTasks(monthly);
-    const migratedTasks = extractSectionTasks(monthly, migratedHeadingPredicate);
-    const dayTasks = extractSectionTasks(monthly, dayHeadingPredicate(info.dd));
+    const rootTasks = extractRootTasks(monthly).filter(isOpenTask);
+    const migratedTasks = extractSectionTasks(monthly, migratedHeadingPredicate).filter(isOpenTask);
+    const dayTasks = extractSectionTasks(monthly, dayHeadingPredicate(info.dd)).filter(
+      (task) => (task.status === " " || task.status === ">") && isDueForDay(task.line, date),
+    );
     const tasks = [...rootTasks, ...migratedTasks, ...dayTasks];
-    const unique = uniqueNewPreparedTasks(extractTasksWithSubtasks(daily), tasks.map((task) => task.line));
+    const unique = uniqueNewPreparedTasks(extractTasksWithSubtasks(daily), tasks.map((task) => prepareMigratedBlock(task.block)));
     if (!unique.length) return;
     await this.files.write(dailyPath, insertAfterH1Compat(daily, unique));
     let updatedMonthly = monthly;
-    for (const task of tasks.filter((task) => unique.some((line) => line === task.line))) {
-      updatedMonthly = updatedMonthly.replace(task.line, markMigrated(task.line));
+    for (const task of tasks.filter((task) => task.status === " " && unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)))) {
+      updatedMonthly = markMigratedTaskBlockInContent(updatedMonthly, task);
     }
     await this.files.write(monthlyPath, updatedMonthly);
   }
 
-  async migratePreviousDay(date = new Date()): Promise<void> {
-    const previous = addDays(date, -1);
+  async migratePreviousDays(date = new Date()): Promise<void> {
+    const days = Math.max(0, Math.floor(this.settings.previousDayMigrationLookbackDays));
+    for (let offset = 1; offset <= days; offset += 1) {
+      await this.migratePreviousDay(date, offset);
+    }
+  }
+
+  async migratePreviousDay(date = new Date(), offsetDays = 1): Promise<void> {
+    const previous = addDays(date, -offsetDays);
     const previousPath = this.paths.dailyPath(previous);
     const todayPath = this.paths.dailyPath(date);
     const previousContent = await this.files.read(previousPath);
     if (!previousContent) return;
     const todayContent = await this.files.read(todayPath);
-    const pending = extractTasksWithSubtasks(previousContent);
+    const pending = extractTasksWithSubtasks(previousContent).filter(isOpenTask);
     const scheduledExpired = pending.filter((task) => !metadataDate(task.line, "📅") && /⏳\s*\d{4}-\d{2}-\d{2}/u.test(task.line));
     const toCarry = pending.filter((task) => !scheduledExpired.includes(task));
-    const unique = uniqueNewPreparedTasks(extractTasksWithSubtasks(todayContent), toCarry.map((task) => task.line));
-    if (unique.length) await this.files.write(todayPath, insertAfterH1Compat(todayContent, unique));
-    if (!this.settings.cancelExpiredScheduled) return;
+    const unique = uniqueNewPreparedTasks(extractTasksWithSubtasks(todayContent), toCarry.map((task) => prepareMigratedBlock(task.block)));
     let updatedPrevious = previousContent;
-    for (const task of scheduledExpired) {
-      updatedPrevious = updatedPrevious.replace(task.line, markCancelled(task.line));
+    if (unique.length) {
+      await this.files.write(todayPath, insertAfterH1Compat(todayContent, unique));
+      for (const task of toCarry.filter((task) => unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)))) {
+        updatedPrevious = markMigratedTaskBlockInContent(updatedPrevious, task);
+      }
     }
+    if (this.settings.cancelExpiredScheduled) {
+      for (const task of scheduledExpired) {
+        updatedPrevious = updatedPrevious.replace(task.line, markCancelled(task.line));
+      }
+    }
+    updatedPrevious = markOpenChildrenOfMigratedBlocks(updatedPrevious);
     if (updatedPrevious !== previousContent) await this.files.write(previousPath, updatedPrevious);
+  }
+
+  async removeFutureScheduledFromDaily(date = new Date()): Promise<void> {
+    const dailyPath = this.paths.dailyPath(date);
+    const daily = await this.files.read(dailyPath);
+    if (!daily) return;
+    let updated = daily;
+    for (const task of extractTasksWithSubtasks(daily).filter(isOpenTask)) {
+      if (!isOutOfDayScheduled(task.line, date)) continue;
+      updated = updated.replace(task.block, "").replace(/\n{3,}/g, "\n\n");
+    }
+    if (updated !== daily) await this.files.write(dailyPath, updated.trimEnd() + "\n");
+  }
+
+  private async normalizeLogSpacing(date: Date): Promise<void> {
+    const dailyPath = this.paths.dailyPath(date);
+    const daily = await this.files.read(dailyPath);
+    if (daily) {
+      const normalizedDaily = normalizeLogTextSpacing(removeMigratedChildrenFromOpenBlocks(daily));
+      if (normalizedDaily !== daily) await this.files.write(dailyPath, normalizedDaily);
+    }
+    const monthlyPath = this.paths.monthlyPath(date);
+    const monthly = await this.files.read(monthlyPath);
+    if (monthly) {
+      const normalizedMonthly = normalizeLogTextSpacing(monthly);
+      if (normalizedMonthly !== monthly) await this.files.write(monthlyPath, normalizedMonthly);
+    }
+  }
+
+  private async markAnnualRecurringMigrated(date: Date): Promise<void> {
+    const annualPath = this.paths.annualPath(date);
+    const annual = await this.files.read(annualPath);
+    if (!annual) return;
+    const pred = monthPredicate(this.paths.dateInfo(date).monthName);
+    const tasks = extractSectionTasks(annual, pred).filter((task) => isOpenTask(task) && /\bevery\b/i.test(task.line));
+    let updated = annual;
+    for (const task of tasks) {
+      if (!this.recurrence.datesInMonthForTask(task.line, date).length) continue;
+      updated = updated.replace(task.line, markMigrated(task.line));
+    }
+    if (updated !== annual) await this.files.write(annualPath, updated);
   }
 }
 
@@ -175,10 +243,38 @@ function hasUniqueLooseKey(task: string, counts: Map<string, number>): boolean {
 function insertAfterH1Compat(content: string, linesToInsert: string[]): string {
   if (!linesToInsert.length) return content;
   const lines = content.split(/\r?\n/);
+  const separated = separateTaskBlocks(linesToInsert);
   const index = lines.findIndex((line) => /^#\s+/.test(line));
-  if (index === -1) return `${linesToInsert.join("\n")}\n\n${content}`;
+  if (index === -1) return `${separated.join("\n")}\n\n${content}`;
   let at = index + 1;
   while (at < lines.length && lines[at].trim() === "") at += 1;
-  lines.splice(at, 0, ...linesToInsert, "");
+  lines.splice(at, 0, ...separated, "");
   return lines.join("\n");
+}
+
+function separateTaskBlocks(lines: string[]): string[] {
+  return lines.flatMap((line, index) => (index === 0 ? [line] : ["", line]));
+}
+
+function isDueForDay(line: string, date: Date): boolean {
+  const scheduled = scheduledDate(line);
+  const start = startDate(line);
+  if (scheduled && !sameDay(scheduled, date)) return false;
+  if (start && start > startOfDay(date)) return false;
+  return true;
+}
+
+function isOutOfDayScheduled(line: string, date: Date): boolean {
+  const scheduled = scheduledDate(line);
+  const start = startDate(line);
+  const today = startOfDay(date);
+  return Boolean((scheduled && !sameDay(scheduled, today)) || (start && start > today));
+}
+
+function sameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }

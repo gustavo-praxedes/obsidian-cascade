@@ -1,12 +1,31 @@
 import type { CascadeSettings, StatusDef } from "./schema";
 
 export const ESSENTIAL_STATUSES: StatusDef[] = [
-  { symbol: " ", label: "Open", icon: "□", essential: true },
-  { symbol: "/", label: "In progress", icon: "◐", essential: true },
-  { symbol: "x", label: "Done", icon: "✓", essential: true },
-  { symbol: "-", label: "Cancelled", icon: "×", essential: true },
-  { symbol: ">", label: "Migrated", icon: "→", essential: true },
-  { symbol: "<", label: "Scheduled", icon: "←", essential: true },
+  { symbol: " ", label: "To-do", essential: true },
+  { symbol: "/", label: "Incomplete", essential: true },
+  { symbol: "x", label: "Done", essential: true },
+  { symbol: "-", label: "Cancelled", essential: true },
+  { symbol: ">", label: "Forwarded", essential: true },
+  { symbol: "<", label: "Scheduling", essential: true },
+];
+
+export const ACCESSORY_STATUSES: StatusDef[] = [
+  { symbol: "?", label: "Question", essential: false, showInMenu: false },
+  { symbol: "!", label: "Important", essential: false, showInMenu: false },
+  { symbol: "*", label: "Star", essential: false, showInMenu: true },
+  { symbol: '"', label: "Quote", essential: false, showInMenu: false },
+  { symbol: "l", label: "Location", essential: false, showInMenu: false },
+  { symbol: "b", label: "Bookmark", essential: false, showInMenu: true },
+  { symbol: "i", label: "Information", essential: false, showInMenu: true },
+  { symbol: "S", label: "Savings", essential: false, showInMenu: true },
+  { symbol: "I", label: "Idea", essential: false, showInMenu: true },
+  { symbol: "p", label: "Pro", essential: false, showInMenu: false },
+  { symbol: "c", label: "Con", essential: false, showInMenu: false },
+  { symbol: "f", label: "Fire", essential: false, showInMenu: false },
+  { symbol: "k", label: "Key", essential: false, showInMenu: false },
+  { symbol: "w", label: "Win", essential: false, showInMenu: false },
+  { symbol: "u", label: "Up", essential: false, showInMenu: true },
+  { symbol: "d", label: "Down", essential: false, showInMenu: true },
 ];
 
 export const DEFAULT_SETTINGS: CascadeSettings = {
@@ -14,8 +33,9 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
   agendaRoot: "01-AGENDA",
   openTodayOnStartup: true,
   runMigrationOnStartup: true,
+  runMigrationOnManualOpen: true,
   runNormalizerOnStartup: true,
-  startupDelaySeconds: 5,
+  startupDelaySeconds: 0,
   startupWaitCondition: "fixed",
   startupWaitMaxSeconds: 30,
   startupVaultIdleSeconds: 3,
@@ -47,8 +67,10 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
   taskSetDoneDate: false,
   migrationEnabled: true,
   cancelExpiredScheduled: true,
+  previousDayMigrationLookbackDays: 1,
+  autoCompleteTaskFamilies: true,
   essentialStatuses: ESSENTIAL_STATUSES,
-  customStatuses: [],
+  customStatuses: ACCESSORY_STATUSES,
   calendarFirstDayOfWeek: 0,
   calendarShowWeekNumbers: false,
   calendarOpenInNewLeaf: false,
@@ -65,10 +87,17 @@ export function mergeSettings(data: Partial<CascadeSettings> | null | undefined)
     ...DEFAULT_SETTINGS,
     ...(data ?? {}),
     essentialStatuses: ESSENTIAL_STATUSES,
-    customStatuses: data?.customStatuses ?? [],
+    customStatuses: mergeCustomStatuses(data?.customStatuses),
     normalizerScopes: data?.normalizerScopes ?? DEFAULT_SETTINGS.normalizerScopes,
     normalizerIgnored: data?.normalizerIgnored ?? DEFAULT_SETTINGS.normalizerIgnored,
     folderTemplates: data?.folderTemplates ?? [],
     frontmatterIgnoredPaths: data?.frontmatterIgnoredPaths ?? [],
   };
+}
+
+function mergeCustomStatuses(saved: StatusDef[] | undefined): StatusDef[] {
+  const bySymbol = new Map<string, StatusDef>();
+  for (const status of ACCESSORY_STATUSES) bySymbol.set(status.symbol, status);
+  for (const status of saved ?? []) bySymbol.set(status.symbol, status);
+  return [...bySymbol.values()].map((status) => ({ ...status, showInMenu: status.showInMenu !== false }));
 }

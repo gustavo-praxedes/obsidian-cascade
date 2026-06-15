@@ -6,6 +6,7 @@ export interface StatusDef {
   label: string;
   icon?: string;
   essential: boolean;
+  showInMenu?: boolean;
 }
 
 export interface FolderTemplate {
@@ -18,6 +19,7 @@ export interface CascadeSettings {
   agendaRoot: string;
   openTodayOnStartup: boolean;
   runMigrationOnStartup: boolean;
+  runMigrationOnManualOpen: boolean;
   runNormalizerOnStartup: boolean;
   startupDelaySeconds: number;
   startupWaitCondition: StartupWaitCondition;
@@ -51,6 +53,8 @@ export interface CascadeSettings {
   taskSetDoneDate: boolean;
   migrationEnabled: boolean;
   cancelExpiredScheduled: boolean;
+  previousDayMigrationLookbackDays: number;
+  autoCompleteTaskFamilies: boolean;
   essentialStatuses: StatusDef[];
   customStatuses: StatusDef[];
   calendarFirstDayOfWeek: 0 | 1;

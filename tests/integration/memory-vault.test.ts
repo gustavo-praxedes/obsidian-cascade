@@ -115,11 +115,14 @@ describe("memory vault integration", () => {
 
       const monthly = await files.read(paths.monthlyPath(new Date(2026, 5, 15)));
       const daily = await files.read(paths.dailyPath(new Date(2026, 5, 15)));
+      const annual = await files.read(paths.annualPath(new Date(2026, 5, 15)));
       const source = await files.read(settings.recurringTasksPath);
 
       expect(source).toBe("- [ ] Fazer designações 🔁 every year on June 15th 📅 2026-06-15 ⏰ 19:30 #tasks\n");
+      expect(annual).toContain("- [>] Fazer designações 🔁 every year on June 15th 📅 2026-06-15 ⏰ 19:30 #tasks");
       expect(monthly).toContain("## [[01-AGENDA/2026/06/202606150000-SEGUNDA-FEIRA|15 - SEGUNDA-FEIRA]]");
       expect(monthly).toContain("- [>] Fazer designações 📅 2026-06-15 ⏰ 19:30 #tasks");
+      expect(monthly).not.toContain("#tasks\n## [[01-AGENDA/2026/06/202606160000-TERÇA-FEIRA|16 - TERÇA-FEIRA]]");
       expect(daily).toContain("- [ ] Fazer designações 📅 2026-06-15 ⏰ 19:30 #tasks");
     } finally {
       vi.useRealTimers();
@@ -152,8 +155,191 @@ describe("memory vault integration", () => {
       const yesterdayText = await files.read(paths.dailyPath(yesterday));
       expect(todayText).toContain("- [ ] Ligar para cliente");
       expect(yesterdayText).toContain("- [-] Compra agendada ⏳ 2026-06-14");
+      expect(yesterdayText).toContain("- [>] Ligar para cliente");
     } finally {
       vi.useRealTimers();
     }
   });
+
+  it("carries only open child tasks and marks open source children as migrated", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const yesterday = new Date(2026, 5, 14);
+      const today = new Date(2026, 5, 15);
+      await files.write(settings.recurringTasksPath, "");
+      await files.write(paths.annualPath(today), paths.renderAnnualLog(today));
+      await files.write(paths.monthlyPath(today), paths.renderMonthlyLog(today));
+      await files.write(paths.dailyPath(today), paths.renderDailyLog(today));
+      await files.write(
+        paths.dailyPath(yesterday),
+        [
+          paths.renderDailyLog(yesterday).trimEnd(),
+          "- [ ] Projeto",
+          "\t- [ ] Filha aberta",
+          "\t- [x] Filha concluida",
+          "\t- [>] Filha migrada",
+          "",
+        ].join("\n"),
+      );
+
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      await migration.run(today);
+
+      const todayText = await files.read(paths.dailyPath(today));
+      const yesterdayText = await files.read(paths.dailyPath(yesterday));
+      expect(todayText).toContain(["- [ ] Projeto", "\t- [ ] Filha aberta"].join("\n"));
+      expect(todayText).not.toContain("Filha concluida");
+      expect(todayText).not.toContain("Filha migrada");
+      expect(yesterdayText).toContain(["- [>] Projeto", "\t- [>] Filha aberta", "\t- [x] Filha concluida", "\t- [>] Filha migrada"].join("\n"));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("only carries open tasks inside the configured previous-day window", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+        previousDayMigrationLookbackDays: 2,
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const today = new Date(2026, 5, 15);
+      await files.write(settings.recurringTasksPath, "");
+      await files.write(paths.annualPath(today), paths.renderAnnualLog(today));
+      await files.write(paths.monthlyPath(today), paths.renderMonthlyLog(today));
+      await files.write(paths.dailyPath(today), paths.renderDailyLog(today));
+      await files.write(paths.dailyPath(new Date(2026, 5, 14)), `${paths.renderDailyLog(new Date(2026, 5, 14))}- [ ] Vem de ontem\n- [i] Nao vem status i\n`);
+      await files.write(paths.dailyPath(new Date(2026, 5, 13)), `${paths.renderDailyLog(new Date(2026, 5, 13))}- [ ] Vem de anteontem\n`);
+      await files.write(paths.dailyPath(new Date(2026, 5, 12)), `${paths.renderDailyLog(new Date(2026, 5, 12))}- [ ] Antiga demais\n`);
+
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      await migration.run(today);
+
+      const todayText = await files.read(paths.dailyPath(today));
+      expect(todayText).toContain("- [ ] Vem de ontem");
+      expect(todayText).toContain("- [ ] Vem de anteontem");
+      expect(todayText).not.toContain("Nao vem status i");
+      expect(todayText).not.toContain("Antiga demais");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("carries due-date tasks from yesterday even when their due date is older", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+        previousDayMigrationLookbackDays: 1,
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const today = new Date(2026, 5, 15);
+      const yesterday = new Date(2026, 5, 14);
+      await files.write(settings.recurringTasksPath, "");
+      await files.write(paths.annualPath(today), paths.renderAnnualLog(today));
+      await files.write(paths.monthlyPath(today), paths.renderMonthlyLog(today));
+      await files.write(paths.dailyPath(today), paths.renderDailyLog(today));
+      await files.write(
+        paths.dailyPath(yesterday),
+        `${paths.renderDailyLog(yesterday)}- [ ] Sem data vem\n- [ ] Data antiga nao vem 📅 2026-06-01\n- [ ] Data de ontem vem 📅 2026-06-14\n`,
+      );
+
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      await migration.run(today);
+
+      const todayText = await files.read(paths.dailyPath(today));
+      expect(todayText).toContain("- [ ] Sem data vem");
+      expect(todayText).toContain("- [ ] Data de ontem vem 📅 2026-06-14");
+      expect(todayText).toContain("- [ ] Data antiga nao vem 📅 2026-06-01");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("removes out-of-day scheduled tasks from today's daily note", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const today = new Date(2026, 5, 15);
+      await files.write(settings.recurringTasksPath, "");
+      await files.write(paths.annualPath(today), paths.renderAnnualLog(today));
+      await files.write(paths.monthlyPath(today), paths.renderMonthlyLog(today));
+      await files.write(
+        paths.dailyPath(today),
+        `${paths.renderDailyLog(today)}- [ ] Futura nao fica ⏳ 2026-06-25\n- [ ] Passada nao fica ⏳ 2026-06-14\n- [ ] Vencimento antigo fica 📅 2026-06-01\n`,
+      );
+
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      await migration.run(today);
+
+      const todayText = await files.read(paths.dailyPath(today));
+      expect(todayText).not.toContain("Futura nao fica");
+      expect(todayText).not.toContain("Passada nao fica");
+      expect(todayText).toContain("- [ ] Vencimento antigo fica 📅 2026-06-01");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("restores only current-day monthly tasks when a daily note is recreated", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const today = new Date(2026, 5, 15);
+      await files.write(settings.recurringTasksPath, "");
+      await files.write(paths.annualPath(today), paths.renderAnnualLog(today));
+      let monthly = paths.renderMonthlyLog(today);
+      monthly = monthly.replace(
+        "## [[01-AGENDA/2026/06/202606010000-SEGUNDA-FEIRA|01 - SEGUNDA-FEIRA]]\n",
+        "## [[01-AGENDA/2026/06/202606010000-SEGUNDA-FEIRA|01 - SEGUNDA-FEIRA]]\n\n- [>] Tarefa antiga do dia 1\n",
+      );
+      monthly = monthly.replace(
+        "## [[01-AGENDA/2026/06/202606150000-SEGUNDA-FEIRA|15 - SEGUNDA-FEIRA]]\n",
+        "## [[01-AGENDA/2026/06/202606150000-SEGUNDA-FEIRA|15 - SEGUNDA-FEIRA]]\n\n- [>] Tarefa atual já marcada no mensal\n",
+      );
+      await files.write(paths.monthlyPath(today), monthly);
+      await files.write(paths.dailyPath(today), paths.renderDailyLog(today));
+
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      await migration.run(today);
+
+      const todayText = await files.read(paths.dailyPath(today));
+      expect(todayText).toContain("- [ ] Tarefa atual já marcada no mensal");
+      expect(todayText).not.toContain("Tarefa antiga do dia 1");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
 });
