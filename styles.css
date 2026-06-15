@@ -1,0 +1,47 @@
+.cascade-calendar {
+  --cascade-border: var(--background-modifier-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.cascade-calendar__toolbar {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.cascade-calendar__header,
+.cascade-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.cascade-calendar__day,
+.cascade-calendar__weekday {
+  align-items: center;
+  aspect-ratio: 1;
+  border: 1px solid var(--cascade-border);
+  border-radius: 6px;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.cascade-calendar__day {
+  background: var(--background-primary);
+  cursor: pointer;
+}
+
+.cascade-calendar__day.is-today {
+  border-color: var(--interactive-accent);
+  color: var(--interactive-accent);
+  font-weight: 700;
+}
+
+.cascade-calendar__day.has-note {
+  background: var(--background-modifier-hover);
+}

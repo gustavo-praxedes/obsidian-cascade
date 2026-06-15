@@ -1,0 +1,10 @@
+{
+  "id": "cascade",
+  "name": "Cascade",
+  "version": "0.0.1",
+  "minAppVersion": "1.5.0",
+  "description": "Native agenda, recurring tasks, and calendar cascade for Obsidian.",
+  "author": "Gustavo",
+  "authorUrl": "",
+  "isDesktopOnly": false
+}

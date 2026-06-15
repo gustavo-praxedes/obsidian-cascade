@@ -1,0 +1,17 @@
+export const ptBR = {
+  settingsTitle: "Cascade",
+  language: "Idioma",
+  agendaRoot: "Pasta raiz da agenda",
+  recurringTasksPath: "Arquivo de tarefas recorrentes",
+  openTodayOnStartup: "Abrir hoje ao iniciar",
+  runMigrationOnStartup: "Migrar tarefas ao iniciar",
+  runNormalizerOnStartup: "Normalizar arquivos ao iniciar",
+  openToday: "Abrir nota diaria",
+  createDaily: "Criar nota diaria",
+  reprocess: "Reprocessar migracao",
+  toggleCalendar: "Alternar calendario Cascade",
+  noticeMigrationDone: "Cascade: migracao concluida.",
+  noticeOpenTodayFailed: "Cascade: nao foi possivel abrir a nota diaria.",
+  calendarToday: "Hoje",
+  settingsSaved: "Configuracoes salvas.",
+};

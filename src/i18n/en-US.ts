@@ -1,0 +1,17 @@
+export const enUS = {
+  settingsTitle: "Cascade",
+  language: "Language",
+  agendaRoot: "Agenda root folder",
+  recurringTasksPath: "Recurring tasks file",
+  openTodayOnStartup: "Open today on startup",
+  runMigrationOnStartup: "Run migration on startup",
+  runNormalizerOnStartup: "Run normalizer on startup",
+  openToday: "Open daily note",
+  createDaily: "Create daily note",
+  reprocess: "Reprocess migration",
+  toggleCalendar: "Toggle Cascade calendar",
+  noticeMigrationDone: "Cascade: migration completed.",
+  noticeOpenTodayFailed: "Cascade: could not open the daily note.",
+  calendarToday: "Today",
+  settingsSaved: "Settings saved.",
+};
