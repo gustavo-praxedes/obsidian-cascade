@@ -55,6 +55,3 @@ Ao ativar o plugin, acesse as configurações para ajustar as ferramentas ao seu
 
 ## 💡 Dica: Ícones de Checkbox Visual
 O plugin faz a ponte lógica do texto para você. Para a experiência visual com ícones na tela (fogo, bandeiras, etc.), é recomendado utilizar o **Minimal Theme** (ou temas similares) que possuem renderização nativa para checkboxes com caracteres especiais, ou aplicar *CSS Snippets* customizados no seu Obsidian.
-
----
-**Autor:** Gustavo | **Versão Atual:** 0.1.0
