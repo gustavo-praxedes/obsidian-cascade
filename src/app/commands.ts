@@ -5,10 +5,18 @@ import { MigrationService } from "../tasks/migration-service";
 import { NoteService } from "../notes/note-service";
 import type { I18n } from "../i18n";
 import type { CascadeSettings } from "../config/schema";
+import { ScheduledTaskService } from "../tasks/scheduled-task-service";
 
 type CascadePluginLike = Plugin & { settings: CascadeSettings };
 
-export function registerCommands(plugin: CascadePluginLike, i18n: I18n, notes: NoteService, migration: MigrationService, calendar: CalendarService): void {
+export function registerCommands(
+  plugin: CascadePluginLike,
+  i18n: I18n,
+  notes: NoteService,
+  migration: MigrationService,
+  calendar: CalendarService,
+  scheduledTasks: ScheduledTaskService,
+): void {
   plugin.addCommand({
     id: "open-today",
     name: i18n.t("openToday"),
@@ -37,6 +45,14 @@ export function registerCommands(plugin: CascadePluginLike, i18n: I18n, notes: N
     callback: async () => {
       await migration.run();
       new Notice(i18n.t("noticeMigrationDone"));
+    },
+  });
+
+  plugin.addCommand({
+    id: "copy-scheduled-task",
+    name: i18n.t("copyScheduledTask"),
+    callback: async () => {
+      await scheduledTasks.copyFromActiveFile();
     },
   });
 

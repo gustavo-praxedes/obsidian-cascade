@@ -4,19 +4,16 @@ import { toOpenTask } from "./task-serializer";
 const TASK_RE = /^(\s*)- \[([^\]])\]\s+(.*)$/;
 
 export class ScheduledTaskService {
-  private timers = new Map<string, number>();
-  private processed = new Set<string>();
-
   constructor(private readonly app: App) {}
 
-  schedule(file: TFile): void {
-    if (file.extension !== "md") return;
-    window.clearTimeout(this.timers.get(file.path));
-    const timer = window.setTimeout(() => {
-      void this.process(file);
-      this.timers.delete(file.path);
-    }, 150);
-    this.timers.set(file.path, timer);
+  async copyFromActiveFile(): Promise<void> {
+    const file = this.app.workspace.getActiveFile();
+    if (!(file instanceof TFile) || file.extension !== "md") {
+      new Notice("Cascade: nenhuma nota Markdown ativa.");
+      return;
+    }
+
+    await this.process(file);
   }
 
   private async process(file: TFile): Promise<void> {
@@ -29,17 +26,14 @@ export class ScheduledTaskService {
       throw error;
     }
     const scheduled = scheduledRootTasks(content);
-    if (!scheduled.length) return;
-
-    for (const task of scheduled) {
-      const id = `${file.path}:${task.key}`;
-      if (this.processed.has(id)) continue;
-      this.processed.add(id);
-      await copyText(task.clipboardText);
-      new Notice("Cascade: tarefa agendada copiada. Cole no log superior.");
-      await this.openUpperLog(content);
-      break;
+    if (!scheduled.length) {
+      new Notice("Cascade: nenhuma tarefa agendada encontrada na nota atual.");
+      return;
     }
+
+    await copyText(scheduled[0].clipboardText);
+    new Notice("Cascade: tarefa agendada copiada. Cole no log superior.");
+    await this.openUpperLog(content);
   }
 
   private async openUpperLog(content: string): Promise<void> {

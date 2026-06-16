@@ -11,6 +11,7 @@ export const enUS = {
   openToday: "Open daily note",
   createDaily: "Create daily note",
   reprocess: "Reprocess migration",
+  copyScheduledTask: "Copy scheduled task from current note",
   toggleCalendar: "Toggle Cascade calendar",
   noticeMigrationDone: "Cascade: migration completed.",
   noticeOpenTodayFailed: "Cascade: could not open the daily note.",

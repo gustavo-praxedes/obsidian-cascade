@@ -11,6 +11,7 @@ export const ptBR = {
   openToday: "Abrir nota diaria",
   createDaily: "Criar nota diaria",
   reprocess: "Reprocessar migracao",
+  copyScheduledTask: "Copiar tarefa agendada da nota atual",
   toggleCalendar: "Alternar calendario Cascade",
   noticeMigrationDone: "Cascade: migracao concluida.",
   noticeOpenTodayFailed: "Cascade: nao foi possivel abrir a nota diaria.",

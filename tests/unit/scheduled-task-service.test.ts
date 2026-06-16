@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { scheduledRootTasks, upperLogPath } from "../../src/tasks/scheduled-task-service";
+import { TFile } from "obsidian";
+import { describe, expect, it, vi } from "vitest";
+import { ScheduledTaskService, scheduledRootTasks, upperLogPath } from "../../src/tasks/scheduled-task-service";
 
 describe("ScheduledTaskService", () => {
   it("extracts root scheduled tasks as open clipboard text", () => {
@@ -14,5 +15,32 @@ describe("ScheduledTaskService", () => {
 
   it("finds upper log path from frontmatter wikilink", () => {
     expect(upperLogPath('---\nlog: "[[01-AGENDA/2026/06/202606000000-JUNHO|JUNHO]]"\n---')).toBe("01-AGENDA/2026/06/202606000000-JUNHO.md");
+  });
+
+  it("copies a scheduled task only when invoked manually", async () => {
+    const activeFile = new TFile() as TFile & { content: string };
+    activeFile.path = "daily.md";
+    activeFile.content = "- [<] Agendar projeto 📅 2026-06-20";
+    const app = {
+      vault: {
+        getAbstractFileByPath: vi.fn((path: string) => (path === activeFile.path ? activeFile : null)),
+        read: vi.fn(async () => activeFile.content),
+      },
+      workspace: {
+        getActiveFile: vi.fn(() => activeFile),
+        getLeaf: vi.fn(() => ({ openFile: vi.fn() })),
+      },
+    };
+    const writeText = vi.fn(async () => undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+
+    const service = new ScheduledTaskService(app as any);
+    await service.copyFromActiveFile();
+    await service.copyFromActiveFile();
+
+    expect(writeText).toHaveBeenCalledTimes(2);
+    expect(writeText).toHaveBeenNthCalledWith(1, "- [ ] Agendar projeto 📅 2026-06-20");
+    expect(app.vault.read).toHaveBeenCalledTimes(2);
+    vi.unstubAllGlobals();
   });
 });

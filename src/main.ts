@@ -49,7 +49,7 @@ export default class CascadePlugin extends Plugin {
 
     this.i18n = new I18n(this.settings.language);
     this.addSettingTab(new CascadeSettingTab(this.app, this));
-    registerCommands(this, this.i18n, notes, migration, calendar);
+    registerCommands(this, this.i18n, notes, migration, calendar, scheduledTasks);
     this.addRibbonIcon("calendar-check", this.i18n.t("openToday"), () => {
       void (async () => {
         await notes.openToday();
@@ -60,7 +60,7 @@ export default class CascadePlugin extends Plugin {
       });
     });
 
-    this.events = new EventRegistry(this.app.vault, normalizer, frontmatter, taskFamilies, scheduledTasks);
+    this.events = new EventRegistry(this.app.vault, normalizer, frontmatter, taskFamilies);
     this.events.register();
 
     this.checkboxMenu = new CheckboxMenu(this.app, statuses);

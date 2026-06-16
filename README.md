@@ -1,57 +1,178 @@
-# Obsidian Cascade
+<div align="center">
 
-O **Obsidian Cascade** é um plugin desenvolvido para transformar o Obsidian em um verdadeiro motor de produtividade. Ele integra uma visualização de calendário nativa a um sistema robusto de gestão de tarefas (agenda) e auto-organização de notas.
+```
+╭──────────────────────────────────────╮
+│                                      │
+│   R E C U R R E N T S . m d         │
+│          │                           │
+│          ▼                           │
+│   A N N U A L   L O G               │
+│          │                           │
+│          ▼                           │
+│   M O N T H L Y   L O G             │
+│          │                           │
+│          ▼                           │
+│   D A I L Y   L O G                 │
+│                                      │
+╰──────────────────────────────────────╯
+```
 
-Seja para planejar suas semanas, estruturar projetos com múltiplas etapas ou gerenciar o fluxo de sub-tarefas, o Cascade automatiza e simplifica o que antes exigia esforço manual.
+# Cascade
 
-## 🌟 Principais Funcionalidades
+**A native Obsidian plugin for periodic notes, task migration, and vault organization.**
 
-### 📋 Gestão Inteligente de Hierarquia de Tarefas (Bottom-up)
-O plugin entende a relação entre tarefas pais e filhas e sincroniza os status automaticamente:
-- Marcar **todas** as sub-tarefas como concluídas marcará a tarefa pai como concluída (`x`).
-- Se **qualquer** sub-tarefa for marcada como "em progresso" (`/`) ou apenas parte for concluída, a tarefa pai é alterada para "em progresso" (`/`).
-- Marcar a tarefa pai como concluída automaticamente conclui todas as filhas.
-- Desmarcar a tarefa pai volta todas as filhas para o status aberto.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Obsidian](https://img.shields.io/badge/Obsidian-Plugin-7C3AED?logo=obsidian&logoColor=white)](https://obsidian.md)
+[![Status](https://img.shields.io/badge/Status-In%20Development-orange)]()
+[![pt-BR](https://img.shields.io/badge/i18n-pt--BR%20%7C%20en--US-green)]()
 
-### 🔲 Menu de Status e Checkboxes Customizáveis
-Troque rapidamente os status de tarefas através de um prático menu de contexto interativo. Basta clicar com o botão direito do mouse em qualquer checkbox de tarefa:
-- Traz embutidos os status padrão essenciais (To-do, In progress, Done, Cancelled, Forwarded, Scheduling).
-- Permite a adição ilimitada de **Status Acessórios** customizados pelos usuários diretamente pelas configurações do Obsidian.
-- Perfeita integração com temas que estilizam checkboxes baseados em tarefas (ex: Minimal Theme e snippets CSS).
+</div>
 
-### 🔄 Tarefas Recorrentes, Agendamentos e Migrações
-Um sistema nativo focado no fluxo do tempo:
-- Migração inteligente entre notas diárias, mensais e anuais.
-- Tarefas pendentes de dias anteriores podem ser automaticamente levadas para frente de acordo com o limite de dias estipulado nas configurações.
-- Auto-limpeza de tarefas agendadas que já expiraram.
-- Suporte a leitura de um arquivo centralizado de tarefas recorrentes para repopular novos meses e anos.
+---
 
-### 📅 Calendário Integrado
-Navegação fluida entre os dias de forma visual através de um painel de calendário nativo:
-- Crie ou navegue facilmente para suas notas diárias com apenas um clique.
-- Indicadores visuais (`dots`) informam em quais dias já existem registros na agenda.
+Cascade replaces a stack of separate plugins — Templater scripts, Calendar, Periodic Notes, Tasks, Checkbox Style Menu, and Update Time on Edit — with a single, modular, and configurable native plugin.
 
-### 📁 Normalização Automática de Notas
-Garante a integridade e uniformidade do seu cofre:
-- Renomeação automática de arquivos baseada em regras de formatação de data e hora.
-- Remove acentos e converte textos para uppercase conforme desejado.
-- Proteção e injeção automática de dados de Frontmatter (Data de criação e atualização automática).
+The core idea is simple: tasks flow **downward** through a cascade of logs. Recurring tasks seed the annual log. The annual log feeds the monthly. The monthly feeds the daily. Pending tasks from yesterday carry forward. Nothing is lost.
 
-## 🚀 Instalação
-*(No futuro, você poderá encontrá-lo diretamente na aba de plugins comunitários do Obsidian.)*
+---
 
-### Instalação Manual
-1. Baixe o último release (arquivos `main.js`, `styles.css`, `manifest.json`).
-2. Cole os arquivos dentro da sua pasta do cofre no diretório: `.obsidian/plugins/obsidian-cascade/`.
-3. Reinicie o Obsidian.
-4. Vá em **Configurações > Plugins Comunitários** (desative o Modo Seguro se necessário) e ative o **Cascade**.
+## Features
 
-## ⚙️ Configuração
-Ao ativar o plugin, acesse as configurações para ajustar as ferramentas ao seu fluxo:
-- Defina os formatos de nomenclatura de arquivos desejados para as suas notas de log (Diário, Semanal, Mensal, Anual).
-- Configure as pastas dos seus Templates.
-- Selecione até quantos dias no passado o sistema deve buscar tarefas abertas perdidas.
-- Cadastre novos símbolos no painel de **Status de checkbox**.
+### Periodic Notes
 
-## 💡 Dica: Ícones de Checkbox Visual
-O plugin faz a ponte lógica do texto para você. Para a experiência visual com ícones na tela (fogo, bandeiras, etc.), é recomendado utilizar o **Minimal Theme** (ou temas similares) que possuem renderização nativa para checkboxes com caracteres especiais, ou aplicar *CSS Snippets* customizados no seu Obsidian.
+Create and navigate daily, weekly, monthly, and yearly notes with a fully configurable path format. The default structure follows the pattern:
+
+```
+AGENDA/
+  2026/
+    202600000000-2026.md          ← annual log
+    06/
+      202606000000-JUNE.md       ← monthly log
+      202606150000-SUNDAY.md     ← daily log
+```
+
+Path format, folder structure, file naming conventions, accent handling, and case are all configurable. No hardcoded paths.
+
+### Task Migration
+
+Tasks flow through a cascade of logs automatically on startup:
+
+```
+RECURRENTS.md  →  Annual  →  Monthly  →  Weekly → Daily  →  Next day
+```
+
+- Recurring tasks (marked with `🔁`) are seeded into the annual and monthly logs on the correct days.
+- The `🔁` marker is stripped from daily copies — the Tasks plugin won't regenerate them when you mark them done.
+- `📅` (due date) carries over if a task goes past its day.
+- `⏳` (scheduled date) tasks that expire without completion are cancelled (`- [-]`) rather than carried forward.
+- `⏰` (reminder time) is always preserved.
+- Migrated tasks in the source are marked `- [>]`, keeping a clean audit trail.
+
+### Checkbox Status Menu
+
+Right-click (or long-press on mobile) any checkbox to open a quick-pick status menu.
+
+Built-in statuses:
+
+| Symbol | Meaning     |
+|--------|-------------|
+| `[ ]`  | Open        |
+| `[/]`  | In progress |
+| `[x]`  | Done        |
+| `[-]`  | Cancelled   |
+| `[>]`  | Migrated    |
+| `[<]`  | Scheduled   |
+
+Migration-critical statuses are protected and cannot be removed. Additional custom statuses can be added freely through settings.
+
+### Calendar View
+
+A native calendar panel in the sidebar. Click any day to open or create the corresponding daily note. Visual indicators show which days already have notes.
+
+### File Normalizer
+
+Keeps file names consistent across the vault:
+
+- Timestamps prefixed (`YYYYMMDDHHmm-`)
+- Spaces and symbols replaced with hyphens
+- Uppercase slugs
+- Configurable accent handling
+- Skips `.trash`, sync conflict files, and temp files
+
+### Frontmatter Management
+
+Automatically maintains `created` and `updated` properties in frontmatter on save. Template files are excluded. YAML structure is preserved.
+
+---
+
+## Installation
+
+> The plugin is currently in active development and not yet listed in the Obsidian Community Plugins directory.
+
+**Manual installation:**
+
+1. Download the latest release: `main.js`, `styles.css`, `manifest.json`.
+2. Copy the files to your vault at `.obsidian/plugins/obsidian-cascade/`.
+3. Restart Obsidian.
+4. Go to **Settings → Community Plugins**, disable Safe Mode if needed, and enable **Cascade**.
+
+---
+
+## Configuration
+
+All behavior is configurable through **Settings → Cascade**:
+
+| Category | Options |
+|---|---|
+| **Notes** | Root folder, daily/monthly/yearly path format, templates per type |
+| **Startup** | Enable auto-migration, startup delay, wait condition before creating today's note |
+| **Tasks** | Recurring tasks source file, global filter tag, cancellation policy for `⏳` |
+| **Normalizer** | Enable/disable, scope folders, accent handling, case |
+| **Statuses** | Custom status symbols and labels |
+| **Frontmatter** | Property names for `created`/`updated`, date format, excluded folders |
+
+---
+
+## Task Metadata Reference
+
+Cascade reads and respects the Tasks plugin emoji format:
+
+| Emoji | Meaning | Behavior |
+|-------|---------|----------|
+| `🔁` | Recurrence rule | Kept in source/annual; stripped from monthly/daily copies |
+| `📅` | Due date | Carried forward if task remains open past the date |
+| `⏳` | Scheduled date | Task is cancelled (`[-]`) if it reaches the next day open |
+| `🛫` | Start date | Used as the recurrence base date when no `📅` or `⏳` is present |
+| `⏰` | Reminder time | Always preserved, never modified |
+
+---
+
+
+
+## Acknowledgements
+
+Cascade was designed to replace a set of excellent plugins. No source code was copied from any of them; behavior and concepts were studied and independently reimplemented. Full credit goes to their authors.
+
+| Plugin | Author | License | Repository |
+|--------|--------|---------|------------|
+| **Tasks** | obsidian-tasks-group | MIT | [github.com/obsidian-tasks-group/obsidian-tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) |
+| **Calendar** | Liam Cain | MIT | [github.com/liamcain/obsidian-calendar-plugin](https://github.com/liamcain/obsidian-calendar-plugin) |
+| **Periodic Notes** | Liam Cain | MIT | [github.com/liamcain/obsidian-periodic-notes](https://github.com/liamcain/obsidian-periodic-notes) |
+| **Dataview** | Michael Brenan (blacksmithgu) | MIT | [github.com/blacksmithgu/obsidian-dataview](https://github.com/blacksmithgu/obsidian-dataview) |
+| **Templater** | SilentVoid13 | AGPL-3.0 | [github.com/SilentVoid13/Templater](https://github.com/SilentVoid13/Templater) |
+| **Update Time on Edit** | beaussan | MIT | [github.com/beaussan/update-time-on-edit-obsidian](https://github.com/beaussan/update-time-on-edit-obsidian) |
+| **Checkbox Style Menu** | ReticentEclectic | 0BSD | [github.com/ReticentEclectic/checkbox-style-menu](https://github.com/ReticentEclectic/checkbox-style-menu) |
+
+> **Note on Templater:** Cascade aims to fully replace the Templater dependency for agenda automation. Because Templater is licensed under AGPL-3.0, no source code from it was used or adapted in Cascade.
+
+---
+
+## Contributing
+
+Issues and pull requests are welcome. Please open an issue first for any significant change so we can discuss approach and scope.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE) for details.
