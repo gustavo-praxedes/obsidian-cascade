@@ -204,6 +204,87 @@ describe("memory vault integration", () => {
     }
   });
 
+  it("carries in-progress tasks and in-progress child tasks from yesterday", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const yesterday = new Date(2026, 5, 14);
+      const today = new Date(2026, 5, 15);
+      await files.write(settings.recurringTasksPath, "");
+      await files.write(paths.annualPath(today), paths.renderAnnualLog(today));
+      await files.write(paths.monthlyPath(today), paths.renderMonthlyLog(today));
+      await files.write(paths.dailyPath(today), paths.renderDailyLog(today));
+      await files.write(
+        paths.dailyPath(yesterday),
+        [
+          paths.renderDailyLog(yesterday).trimEnd(),
+          "- [/] Projeto em progresso",
+          "\t- [/] Filha em progresso",
+          "",
+        ].join("\n"),
+      );
+
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      await migration.run(today);
+
+      const todayText = await files.read(paths.dailyPath(today));
+      const yesterdayText = await files.read(paths.dailyPath(yesterday));
+      expect(todayText).toContain(["- [ ] Projeto em progresso", "\t- [ ] Filha em progresso"].join("\n"));
+      expect(yesterdayText).toContain(["- [>] Projeto em progresso", "\t- [>] Filha em progresso"].join("\n"));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("carries open child tasks under already migrated parents from yesterday", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const yesterday = new Date(2026, 5, 14);
+      const today = new Date(2026, 5, 15);
+      await files.write(settings.recurringTasksPath, "");
+      await files.write(paths.annualPath(today), paths.renderAnnualLog(today));
+      await files.write(paths.monthlyPath(today), paths.renderMonthlyLog(today));
+      await files.write(paths.dailyPath(today), paths.renderDailyLog(today));
+      await files.write(
+        paths.dailyPath(yesterday),
+        [
+          paths.renderDailyLog(yesterday).trimEnd(),
+          "- [>] Projeto",
+          "\t- [ ] Filha aberta",
+          "\t- [/] Filha em progresso",
+          "",
+        ].join("\n"),
+      );
+
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      await migration.run(today);
+
+      const todayText = await files.read(paths.dailyPath(today));
+      const yesterdayText = await files.read(paths.dailyPath(yesterday));
+      expect(todayText).toContain("- [ ] Filha aberta");
+      expect(todayText).toContain("- [ ] Filha em progresso");
+      expect(todayText).not.toContain("- [ ] Projeto");
+      expect(yesterdayText).toContain(["- [>] Projeto", "\t- [>] Filha aberta", "\t- [>] Filha em progresso"].join("\n"));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("only carries open tasks inside the configured previous-day window", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 5, 15, 11, 20));

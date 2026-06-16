@@ -1,6 +1,8 @@
 import { formatDate } from "../notes/path-service";
 import { metadataDate, sectionBounds, taskKey, taskLooseKey, type TaskBlock } from "./task-parser";
 
+const CARRYABLE_STATUSES = new Set([" ", "/"]);
+
 const RECURRENCE_RE = /\s*🔁\s*every\b.*?(?=\s+(?:🏁|➕|🛫|⏳|📅|❌|✅|#[\w/-]+|\^[\w-]+)|$)/iu;
 
 export function toOpenTask(task: TaskBlock | string): string {
@@ -68,8 +70,8 @@ export function prepareMigratedBlock(block: string): string {
     }
     const match = line.match(/^(\s*)-\s+\[([^\]])\]/);
     if (match) {
-      keepFollowingText = match[2] === " ";
-      if (keepFollowingText) prepared.push(line);
+      keepFollowingText = CARRYABLE_STATUSES.has(match[2]);
+      if (keepFollowingText) prepared.push(toOpenTask(line));
       continue;
     }
     if (keepFollowingText && /^\s+/.test(line)) prepared.push(line);
@@ -88,7 +90,7 @@ export function markMigratedTaskBlockInContent(content: string, task: TaskBlock)
     const match = line.match(/^(\s*)-\s+\[([^\]])\]/);
     if (match && match[1].length <= parentIndent) break;
     if (/^#{1,6}\s+/.test(line)) break;
-    if (match?.[2] === " ") lines[index] = markMigrated(line);
+    if (match && CARRYABLE_STATUSES.has(match[2])) lines[index] = markMigrated(line);
   }
   return lines.join("\n");
 }
@@ -100,7 +102,7 @@ export function markOpenChildrenOfMigratedBlocks(content: string): string {
     if (!parent || parent[1] !== ">") continue;
     for (let child = index + 1; child < lines.length; child += 1) {
       if (/^- \[[^\]]+\]/.test(lines[child]) || /^#{1,6}\s+/.test(lines[child])) break;
-      if (/^\s+-\s+\[ \]/.test(lines[child])) lines[child] = markMigrated(lines[child]);
+      if (/^\s+-\s+\[( |\/)\]/.test(lines[child])) lines[child] = markMigrated(lines[child]);
     }
   }
   return lines.join("\n");

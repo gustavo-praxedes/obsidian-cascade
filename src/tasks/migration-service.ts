@@ -16,6 +16,7 @@ import {
   scheduledDate,
   startDate,
   taskLooseKey,
+  type TaskBlock,
 } from "./task-parser";
 import { RecurrenceService } from "./recurrence-service";
 import {
@@ -164,7 +165,7 @@ export class MigrationService {
     const previousContent = await this.files.read(previousPath);
     if (!previousContent) return;
     const todayContent = await this.files.read(todayPath);
-    const pending = extractTasksWithSubtasks(previousContent).filter(isOpenTask);
+    const pending = previousDayCarryTasks(previousContent);
     const scheduledExpired = pending.filter((task) => !metadataDate(task.line, "📅") && /⏳\s*\d{4}-\d{2}-\d{2}/u.test(task.line));
     const toCarry = pending.filter((task) => !scheduledExpired.includes(task));
     const unique = uniqueNewPreparedTasks(extractTasksWithSubtasks(todayContent), toCarry.map((task) => prepareMigratedBlock(task.block)));
@@ -277,4 +278,73 @@ function sameDay(a: Date, b: Date): boolean {
 
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function previousDayCarryTasks(content: string): TaskBlock[] {
+  const lines = String(content || "").split(/\r?\n/);
+  const parsed = lines.flatMap((line, index) => {
+    const match = line.match(/^(\s*)-\s+\[([^\]])\]\s+(.*)$/);
+    if (!match) return [];
+    return [{ index, line, indent: match[1].length, status: match[2], text: match[3] }];
+  });
+  const byIndex = new Map(parsed.map((task) => [task.index, task]));
+  const covered = new Set<number>();
+  const tasks: TaskBlock[] = [];
+
+  for (const task of parsed) {
+    if (!isCarryableStatus(task.status) || covered.has(task.index)) continue;
+    const block = task.indent === 0 ? taskBlock(lines, task.index) : unindentedTaskBlock(lines, task.index);
+    tasks.push({ line: task.line, block, indent: task.line.match(/^\s*/)?.[0] ?? "", status: task.status, text: task.text });
+
+    if (task.indent === 0) {
+      for (const index of descendantTaskIndexes(lines, task.index)) {
+        const descendant = byIndex.get(index);
+        if (descendant && isCarryableStatus(descendant.status)) covered.add(index);
+      }
+    }
+  }
+
+  return tasks;
+}
+
+function taskBlock(lines: string[], start: number): string {
+  const block = [lines[start]];
+  const parentIndent = indentation(lines[start]);
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (/^#{1,6}\s+/.test(lines[index])) break;
+    if (isTaskLine(lines[index]) && indentation(lines[index]) <= parentIndent) break;
+    if (/^\s+/.test(lines[index]) && !/^\s*-\s+\[(x|-|>)\]/i.test(lines[index])) block.push(lines[index]);
+  }
+  return block.join("\n");
+}
+
+function unindentedTaskBlock(lines: string[], start: number): string {
+  const baseIndent = indentation(lines[start]);
+  return taskBlock(lines, start)
+    .split(/\r?\n/)
+    .map((line) => (line.slice(0, baseIndent).trim() ? line : line.slice(baseIndent)))
+    .join("\n");
+}
+
+function descendantTaskIndexes(lines: string[], start: number): number[] {
+  const indexes: number[] = [];
+  const parentIndent = indentation(lines[start]);
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (/^#{1,6}\s+/.test(lines[index])) break;
+    if (isTaskLine(lines[index]) && indentation(lines[index]) <= parentIndent) break;
+    if (isTaskLine(lines[index])) indexes.push(index);
+  }
+  return indexes;
+}
+
+function isCarryableStatus(status: string): boolean {
+  return status === " " || status === "/";
+}
+
+function isTaskLine(line: string): boolean {
+  return /^(\s*)-\s+\[[^\]]\]\s+/.test(line);
+}
+
+function indentation(line: string): number {
+  return line.match(/^\s*/)?.[0].length ?? 0;
 }
