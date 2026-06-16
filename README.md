@@ -8,6 +8,7 @@
 [![Obsidian](https://img.shields.io/badge/Obsidian-Plugin-7C3AED?logo=obsidian&logoColor=white)](https://obsidian.md)
 [![Status](https://img.shields.io/badge/Status-In%20Development-orange)]()
 [![pt-BR](https://img.shields.io/badge/i18n-pt--BR%20%7C%20en--US-green)]()
+[![Version](https://img.shields.io/badge/Version-0.1.2-blue)]()
 
 </div>
 
@@ -15,7 +16,7 @@
 
 Cascade replaces a stack of separate plugins — Templater scripts, Calendar, Periodic Notes, Tasks, Checkbox Style Menu, and Update Time on Edit — with a single, modular, and configurable native plugin.
 
-The core idea is simple: tasks flow **downward** through a cascade of logs. Recurring tasks seed the annual log. The annual log feeds the monthly. The monthly feeds the daily. Pending tasks from yesterday carry forward. Nothing is lost.
+The core idea is simple: tasks flow **downward** through a cascade of logs. Recurring tasks seed the annual log. The annual log feeds the monthly. The monthly feeds the weekly. The weekly feeds the daily. Pending tasks from yesterday carry forward. Nothing is lost.
 
 ---
 
@@ -23,7 +24,7 @@ The core idea is simple: tasks flow **downward** through a cascade of logs. Recu
 
 ### Periodic Notes
 
-Create and navigate daily, weekly, monthly, and yearly notes with a fully configurable path format. The default structure follows the pattern:
+Create and navigate daily, **weekly**, monthly, and yearly notes with a fully configurable path format. The default structure follows the pattern:
 
 ```
 AGENDA/
@@ -31,10 +32,17 @@ AGENDA/
     202600000000-2026.md          ← annual log
     06/
       202606000000-JUNE.md       ← monthly log
-      202606150000-SUNDAY.md     ← daily log
+      202606150000-[S]-24.md     ← weekly log (folder-index)
+      202606150000-[S]-24/       ← weekly folder
+        202606150001-SUNDAY.md   ← daily log
+      202606150000-SUNDAY.md     ← daily log (flat structure)
 ```
 
 Path format, folder structure, file naming conventions, accent handling, and case are all configurable. No hardcoded paths.
+
+**Weekly notes** support two structures:
+- **Folder-index** (default): each week gets its own folder containing the weekly index + daily notes
+- **Flat**: weekly and daily notes live directly in the month folder
 
 ### Task Migration
 
@@ -44,12 +52,14 @@ Tasks flow through a cascade of logs automatically on startup:
 RECURRENTS.md  →  Annual  →  Monthly  →  Weekly → Daily  →  Next day
 ```
 
-- Recurring tasks (marked with `🔁`) are seeded into the annual and monthly logs on the correct days.
-- The `🔁` marker is stripped from daily copies — the Tasks plugin won't regenerate them when you mark them done.
+- Recurring tasks (marked with `🔁`) are seeded into the annual and monthly/weekly logs on the correct days.
+- The `🔁` marker is stripped from monthly/weekly/daily copies — the Tasks plugin won't regenerate them when you mark them done.
 - `📅` (due date) carries over if a task goes past its day.
 - `⏳` (scheduled date) tasks that expire without completion are cancelled (`- [-]`) rather than carried forward.
 - `⏰` (reminder time) is always preserved.
 - Migrated tasks in the source are marked `- [>]`, keeping a clean audit trail.
+- **In-progress child tasks** (`[/]`) from previous days are carried forward with their parent.
+- **Task families**: completing a parent auto-completes open/in-progress children; completing all children auto-completes the parent (configurable).
 
 ### Checkbox Status Menu
 
@@ -71,6 +81,12 @@ Migration-critical statuses are protected and cannot be removed. Additional cust
 ### Calendar View
 
 A native calendar panel in the sidebar. Click any day to open or create the corresponding daily note. Visual indicators show which days already have notes.
+
+**Options:**
+- First day of week (Sunday/Monday)
+- Show ISO week numbers
+- Open in new leaf
+- Confirm before creating new notes
 
 ### File Normalizer
 
@@ -107,11 +123,12 @@ All behavior is configurable through **Settings → Cascade**:
 
 | Category | Options |
 |---|---|
-| **Notes** | Root folder, daily/monthly/yearly path format, templates per type |
-| **Startup** | Enable auto-migration, startup delay, wait condition before creating today's note |
-| **Tasks** | Recurring tasks source file, global filter tag, cancellation policy for `⏳` |
-| **Normalizer** | Enable/disable, scope folders, accent handling, case |
-| **Statuses** | Custom status symbols and labels |
+| **Agenda** | Language, root folder, recurring tasks source, **weekly notes (on/off)**, weekly structure (folder-index/flat) |
+| **Formats & Templates** | Daily/weekly/monthly/yearly path format, note format, templates folder, templates per type |
+| **Startup & Migration** | Open today on startup, auto-migration, normalizer on startup, migration enabled, cancel expired scheduled, lookback days for previous day migration, auto-complete task families |
+| **Normalizer** | Enable/disable, scope folders, accent handling, case, timestamp prefix |
+| **Statuses** | Custom status symbols and labels (essential statuses are protected) |
+| **Calendar** | First day of week, show week numbers, open in new leaf, confirm create |
 | **Frontmatter** | Property names for `created`/`updated`, date format, excluded folders |
 
 ---
