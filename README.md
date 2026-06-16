@@ -1,22 +1,5 @@
 <div align="center">
 
-```
-╭──────────────────────────────────────╮
-│                                      │
-│   R E C U R R E N T S . m d         │
-│          │                           │
-│          ▼                           │
-│   A N N U A L   L O G               │
-│          │                           │
-│          ▼                           │
-│   M O N T H L Y   L O G             │
-│          │                           │
-│          ▼                           │
-│   D A I L Y   L O G                 │
-│                                      │
-╰──────────────────────────────────────╯
-```
-
 # Cascade
 
 **A native Obsidian plugin for periodic notes, task migration, and vault organization.**
