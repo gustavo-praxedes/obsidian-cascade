@@ -3,7 +3,9 @@ export const ptBR = {
   language: "Idioma",
   agendaRoot: "Pasta raiz da agenda",
   recurringTasksPath: "Arquivo de tarefas recorrentes",
+  weeklyStructure: "Estrutura semanal",
   openTodayOnStartup: "Abrir hoje ao iniciar",
+  weeklyEnabled: "Usar notas semanais",
   runMigrationOnStartup: "Migrar tarefas ao iniciar",
   runNormalizerOnStartup: "Normalizar arquivos ao iniciar",
   migrationEnabled: "Migracao de tarefas ativa",
@@ -17,4 +19,6 @@ export const ptBR = {
   noticeOpenTodayFailed: "Cascade: nao foi possivel abrir a nota diaria.",
   calendarToday: "Hoje",
   settingsSaved: "Configuracoes salvas.",
+  weeklyStructureFolderIndex: "Pasta semanal com indice",
+  weeklyStructureFlat: "Tudo junto no mes",
 };

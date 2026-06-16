@@ -22,6 +22,15 @@ export class RepairService {
     return true;
   }
 
+  hasWeeklyStructure(content: string, date: Date): boolean {
+    const lines = splitLines(content);
+    if (!content.trim() || !lines.some((line) => /^#\s+/.test(line))) return false;
+    for (const current of this.paths.weekDates(date)) {
+      if (!lines.some((line) => matchesDayHeading(line, String(current.getDate()).padStart(2, "0")))) return false;
+    }
+    return true;
+  }
+
   repairAnnualLog(content: string, date: Date): string {
     if (this.hasAnnualStructure(content, date)) return content;
     const lines = splitLines(content);
@@ -72,6 +81,33 @@ export class RepairService {
     for (let day = 1; day <= daysInMonth; day += 1) {
       const key = String(day).padStart(2, "0");
       repaired = insertBlocksIntoSection(repaired, (line) => matchesDayHeading(line, key), byDay.get(key) ?? []);
+    }
+    return appendRecovered(repaired, recovered);
+  }
+
+  repairWeeklyLog(content: string, date: Date): string {
+    if (this.hasWeeklyStructure(content, date)) return content;
+    const lines = splitLines(content);
+    const byDay = new Map<string, string[]>();
+    for (const current of this.paths.weekDates(date)) {
+      byDay.set(String(current.getDate()).padStart(2, "0"), []);
+    }
+    const recovered: string[] = [];
+    const firstSection = lines.findIndex((line) => /^##\s+/.test(line));
+    addBlocks(recovered, taskBlocksInRange(lines, 0, firstSection === -1 ? lines.length : firstSection));
+
+    for (let index = 0; index < lines.length; index += 1) {
+      if (!/^##\s+/.test(lines[index])) continue;
+      const end = sectionEnd(lines, index);
+      const blocks = taskBlocksInRange(lines, index + 1, end);
+      const day = [...byDay.keys()].find((item) => matchesDayHeading(lines[index], item));
+      addBlocks(day ? byDay.get(day)! : recovered, blocks);
+      index = end - 1;
+    }
+
+    let repaired = this.paths.renderWeeklyLog(date);
+    for (const day of byDay.keys()) {
+      repaired = insertBlocksIntoSection(repaired, (line) => matchesDayHeading(line, day), byDay.get(day) ?? []);
     }
     return appendRecovered(repaired, recovered);
   }

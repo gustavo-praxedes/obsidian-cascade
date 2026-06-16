@@ -1,5 +1,6 @@
 export type CascadeLanguage = "pt-BR" | "en-US" | "auto";
 export type StartupWaitCondition = "fixed" | "until-daily" | "until-vault-idle" | "combined";
+export type WeeklyStructure = "folder-index" | "flat";
 
 export interface StatusDef {
   symbol: string;
@@ -27,6 +28,7 @@ export interface CascadeSettings {
   startupVaultIdleSeconds: number;
   dailyEnabled: boolean;
   weeklyEnabled: boolean;
+  weeklyStructure: WeeklyStructure;
   monthlyEnabled: boolean;
   yearlyEnabled: boolean;
   operationalYearStartMonth: number;

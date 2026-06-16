@@ -7,6 +7,7 @@ import { RecurrenceService } from "../../src/tasks/recurrence-service";
 
 const referenceRoot = process.env.CASCADE_REFERENCE_SCRIPTS ?? "D:/OBSIDIAN/02-ARQUIVO/OBSIDIAN/SCRIPTS";
 const requireFromTest = createRequire(import.meta.url);
+const LEGACY_REFERENCE_SETTINGS = { ...DEFAULT_SETTINGS, weeklyEnabled: false, dailyFormat: "YYYYMMdd0000-DDD" };
 
 describe("reference script parity", () => {
   const vaultConfigPath = `${referenceRoot}/vaultConfig.js`;
@@ -17,7 +18,7 @@ describe("reference script parity", () => {
     vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
     try {
       const cfg = requireFromTest(vaultConfigPath)();
-      const paths = new PathService(DEFAULT_SETTINGS);
+      const paths = new PathService(LEGACY_REFERENCE_SETTINGS);
       const samples = Array.from({ length: 30 }, (_, index) => new Date(2026, index % 12, (index % 27) + 1));
 
       for (const date of samples) {
@@ -38,7 +39,7 @@ describe("reference script parity", () => {
     vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
     try {
       const cfg = requireFromTest(vaultConfigPath)();
-      const paths = new PathService(DEFAULT_SETTINGS);
+      const paths = new PathService(LEGACY_REFERENCE_SETTINGS);
       const date = new Date(2026, 5, 15);
 
       expect(paths.renderAnnualLog(date)).toBe(cfg.renderAnnualLog(date));

@@ -37,6 +37,19 @@ const MONTHS_PT = [
 export class PathService {
   constructor(private readonly settings: CascadeSettings) {}
 
+  weeklyEnabled(): boolean {
+    return this.settings.weeklyEnabled;
+  }
+
+  weeklyUsesFolder(): boolean {
+    return this.settings.weeklyEnabled && this.settings.weeklyStructure === "folder-index";
+  }
+
+  weekDates(date = new Date()): Date[] {
+    const weekStart = startOfWeek(date, 1);
+    return Array.from({ length: 7 }, (_, offset) => addDays(weekStart, offset));
+  }
+
   dateInfo(input = new Date()): DateInfo {
     const date = new Date(input.getFullYear(), input.getMonth(), input.getDate());
     const year = date.getFullYear();
@@ -93,12 +106,22 @@ export class PathService {
   }
 
   weeklyPath(date = new Date()): string {
-    const info = this.dateInfo(date);
-    return normalizeVaultPath(`${this.monthFolder(date)}/${renderFormat(this.settings.weeklyFormat, info)}.md`);
+    const base = this.weeklyBase(date);
+    const parent = this.weeklyUsesFolder() ? this.weeklyFolder(date) : this.monthFolder(date);
+    return normalizeVaultPath(`${parent}/${base}.md`);
+  }
+
+  weeklyFolder(date = new Date()): string {
+    return normalizeVaultPath(`${this.monthFolder(date)}/${this.weeklyBase(date)}`);
+  }
+
+  weeklyBase(date = new Date()): string {
+    return renderFormat(this.settings.weeklyFormat, this.weeklyDateInfo(date));
   }
 
   dailyPath(date = new Date()): string {
-    return normalizeVaultPath(`${this.monthFolder(date)}/${this.dailyBase(date)}.md`);
+    const parent = this.weeklyUsesFolder() ? this.weeklyFolder(date) : this.monthFolder(date);
+    return normalizeVaultPath(`${parent}/${this.dailyBase(date)}.md`);
   }
 
   annualBase(date = new Date()): string {
@@ -139,7 +162,6 @@ export class PathService {
   renderMonthlyLog(date = new Date()): string {
     const info = this.dateInfo(date);
     const created = isoMinute();
-    const daysInMonth = new Date(info.year, info.month, 0).getDate();
     const lines = [
       "---",
       `id: ${this.monthlyBase(date)}`,
@@ -151,8 +173,40 @@ export class PathService {
       `# ${info.monthName}`,
       "",
     ];
-    for (let day = 1; day <= daysInMonth; day += 1) {
-      const current = new Date(info.year, info.month - 1, day);
+    if (this.settings.weeklyEnabled) {
+      const seen = new Set<string>();
+      for (const current of this.monthDates(date)) {
+        const link = withoutExtension(this.weeklyPath(current));
+        if (seen.has(link)) continue;
+        seen.add(link);
+        const weekInfo = this.weeklyDateInfo(current);
+        lines.push(`## [[${link}|S-${pad2(weekInfo.week)}]]`, "");
+      }
+    } else {
+      for (const current of this.monthDates(date)) {
+        const currentInfo = this.dateInfo(current);
+        const link = withoutExtension(this.dailyPath(current));
+        lines.push(`## [[${link}|${currentInfo.dd} - ${currentInfo.weekdayName}]]`, "");
+      }
+    }
+    return lines.join("\n").trimEnd() + "\n";
+  }
+
+  renderWeeklyLog(date = new Date()): string {
+    const info = this.dateInfo(date);
+    const created = isoMinute();
+    const lines = [
+      "---",
+      `id: ${this.weeklyBase(date)}`,
+      `log: "[[${withoutExtension(this.monthlyPath(date))}|${info.monthName}]]"`,
+      "tags: [agenda/semanal]",
+      `created: ${created}`,
+      `updated: ${created}`,
+      "---",
+      `# SEMANA ${pad2(info.week)}`,
+      "",
+    ];
+    for (const current of this.weekDates(date)) {
       const currentInfo = this.dateInfo(current);
       const link = withoutExtension(this.dailyPath(current));
       lines.push(`## [[${link}|${currentInfo.dd} - ${currentInfo.weekdayName}]]`, "");
@@ -163,10 +217,12 @@ export class PathService {
   renderDailyLog(date = new Date()): string {
     const info = this.dateInfo(date);
     const created = isoMinute();
+    const parentPath = this.settings.weeklyEnabled ? this.weeklyPath(date) : this.monthlyPath(date);
+    const parentAlias = this.settings.weeklyEnabled ? `SEMANA ${pad2(info.week)}` : info.monthName;
     return [
       "---",
       `id: ${this.dailyBase(date)}`,
-      `log: "[[${withoutExtension(this.monthlyPath(date))}|${info.monthName}]]"`,
+      `log: "[[${withoutExtension(parentPath)}|${parentAlias}]]"`,
       "tags: [agenda/diario]",
       `created: ${created}`,
       `updated: ${created}`,
@@ -205,6 +261,17 @@ export class PathService {
   normalizeText(value: string): string {
     return normalizeText(value);
   }
+
+  private monthDates(date: Date): Date[] {
+    const info = this.dateInfo(date);
+    const daysInMonth = new Date(info.year, info.month, 0).getDate();
+    return Array.from({ length: daysInMonth }, (_, index) => new Date(info.year, info.month - 1, index + 1));
+  }
+
+  private weeklyDateInfo(date: Date): DateInfo {
+    const sameMonth = this.weekDates(date).find((current) => current.getFullYear() === date.getFullYear() && current.getMonth() === date.getMonth()) ?? date;
+    return this.dateInfo(sameMonth);
+  }
 }
 
 export function normalizeText(value: string): string {
@@ -242,6 +309,12 @@ export function addDays(date: Date, days: number): Date {
   return new Date(next.getFullYear(), next.getMonth(), next.getDate());
 }
 
+export function startOfWeek(date: Date, firstDayOfWeek: 0 | 1): Date {
+  const current = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const offset = (current.getDay() - firstDayOfWeek + 7) % 7;
+  return addDays(current, -offset);
+}
+
 export function sameDate(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
@@ -267,7 +340,8 @@ function renderFormat(format: string, info: DateInfo): string {
     .replaceAll("mm", info.mm)
     .replaceAll("DD", info.dd)
     .replaceAll("dd", info.dd)
-    .replaceAll("WW", pad2(info.week));
+    .replaceAll("WW", pad2(info.week))
+    .replace(/\[([^\]]+)\]/g, "$1");
 }
 
 function titleCasePt(value: string): string {

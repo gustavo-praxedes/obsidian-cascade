@@ -34,8 +34,20 @@ export class NoteService {
     return file;
   }
 
-  async createDaily(date = new Date()): Promise<TFile> {
+  async createWeekly(date = new Date()): Promise<TFile> {
     await this.createMonthly(date);
+    const path = this.paths.weeklyPath(date);
+    const title = this.paths.weeklyBase(date);
+    const fallback = this.renderWeekly(date);
+    const content = await this.templates.render("weekly", path, fallback, this.paths.dateInfo(date), title);
+    const file = await this.files.ensureFile(path, content);
+    await this.repairIfNeeded(path, "weekly", date);
+    return file;
+  }
+
+  async createDaily(date = new Date()): Promise<TFile> {
+    if (this.paths.weeklyEnabled()) await this.createWeekly(date);
+    else await this.createMonthly(date);
     const path = this.paths.dailyPath(date);
     const title = this.paths.dailyBase(date);
     const fallback = this.renderDaily(date);
@@ -62,14 +74,16 @@ export class NoteService {
     await leaf.openFile(file);
   }
 
-  private async repairIfNeeded(path: string, kind: "yearly" | "monthly" | "daily", date: Date): Promise<void> {
+  private async repairIfNeeded(path: string, kind: "yearly" | "monthly" | "weekly" | "daily", date: Date): Promise<void> {
     const content = await this.files.read(path);
     const repaired =
       kind === "yearly"
         ? this.repair.repairAnnualLog(content, date)
         : kind === "monthly"
           ? this.repair.repairMonthlyLog(content, date)
-          : this.repair.repairDailyLog(content, date);
+          : kind === "weekly"
+            ? this.repair.repairWeeklyLog(content, date)
+            : this.repair.repairDailyLog(content, date);
     if (repaired !== content) await this.files.write(path, repaired);
   }
 
@@ -79,6 +93,10 @@ export class NoteService {
 
   private renderMonthly(date: Date): string {
     return this.paths.renderMonthlyLog(date);
+  }
+
+  private renderWeekly(date: Date): string {
+    return this.paths.renderWeeklyLog(date);
   }
 
   private renderDaily(date: Date): string {

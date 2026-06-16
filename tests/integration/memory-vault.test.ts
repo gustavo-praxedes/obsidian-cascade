@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { TFile, TFolder } from "obsidian";
 import { DEFAULT_SETTINGS } from "../../src/config/defaults";
 import { NoteService } from "../../src/notes/note-service";
@@ -86,9 +86,55 @@ describe("memory vault integration", () => {
 
       expect(vault.files.has("01-AGENDA/2026/202600000000-2026.md")).toBe(true);
       expect(vault.files.has("01-AGENDA/2026/06/202606000000-JUNHO.md")).toBe(true);
-      expect(vault.files.has("01-AGENDA/2026/06/202606150000-SEGUNDA-FEIRA.md")).toBe(true);
-      expect(vault.files.get("01-AGENDA/2026/06/202606150000-SEGUNDA-FEIRA.md")?.content).toContain("# 15 - SEGUNDA-FEIRA");
-      expect(opened).toEqual(["01-AGENDA/2026/06/202606150000-SEGUNDA-FEIRA.md"]);
+      const dailyPath = paths.dailyPath(new Date(2026, 5, 15));
+      expect(vault.files.has("01-AGENDA/2026/06/202606150000-S-25/202606150000-S-25.md")).toBe(true);
+      expect(vault.files.has(dailyPath)).toBe(true);
+      expect(vault.files.get(dailyPath)?.content).toContain("# 15 - SEGUNDA-FEIRA");
+      expect(opened).toEqual([dailyPath]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("creates notes and migrates recurring tasks with custom folders and weekly notes", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 16, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        agendaRoot: "PLANEJAMENTO/REGISTROS",
+        recurringTasksPath: "CONFIGURACOES/TAREFAS/RECORRENTES.md",
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const repair = new RepairService(paths);
+      const templates = new TemplateService(vault as any, settings);
+      const opened: string[] = [];
+      const app = {
+        vault,
+        workspace: {
+          getLeaf: () => ({
+            openFile: async (file: TFile) => opened.push(file.path),
+          }),
+        },
+      };
+      const notes = new NoteService(app as any, paths, files, repair, templates);
+      const date = new Date(2026, 5, 16);
+
+      await files.write(settings.recurringTasksPath, "- [ ] Estudo em familia \u{1F501} every week on Tuesday \u{1F4C5} 2026-06-16 \u23F0 19:00 #tasks\n");
+      await notes.openDate(date);
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      await migration.run(date);
+
+      expect(vault.files.has("PLANEJAMENTO/REGISTROS/2026/202600000000-2026.md")).toBe(true);
+      expect(vault.files.has("PLANEJAMENTO/REGISTROS/2026/06/202606000000-JUNHO.md")).toBe(true);
+      expect(vault.files.has(paths.weeklyPath(date))).toBe(true);
+      expect(paths.weeklyPath(date)).toContain("/202606150000-S-25/202606150000-S-25.md");
+      const dailyPath = paths.dailyPath(date);
+      expect(vault.files.has(dailyPath)).toBe(true);
+      expect(vault.files.get(dailyPath)?.content).toContain("Estudo em familia");
+      expect(opened).toEqual([dailyPath]);
     } finally {
       vi.useRealTimers();
     }
@@ -101,11 +147,12 @@ describe("memory vault integration", () => {
       const vault = new MemoryVault();
       const settings = {
         ...DEFAULT_SETTINGS,
+        weeklyEnabled: false,
         recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
       };
       const paths = new PathService(settings);
       const files = new FileService(vault as any);
-      await files.write(settings.recurringTasksPath, "- [ ] Fazer designações 🔁 every year on June 15th 📅 2026-06-15 ⏰ 19:30 #tasks\n");
+      await files.write(settings.recurringTasksPath, "- [ ] Fazer designaÃ§Ãµes \u{1F501} every year on June 15th \u{1F4C5} 2026-06-15 \u23F0 19:30 #tasks\n");
       await files.write(paths.annualPath(new Date(2026, 5, 15)), paths.renderAnnualLog(new Date(2026, 5, 15)));
       await files.write(paths.monthlyPath(new Date(2026, 5, 15)), paths.renderMonthlyLog(new Date(2026, 5, 15)));
       await files.write(paths.dailyPath(new Date(2026, 5, 15)), paths.renderDailyLog(new Date(2026, 5, 15)));
@@ -118,12 +165,12 @@ describe("memory vault integration", () => {
       const annual = await files.read(paths.annualPath(new Date(2026, 5, 15)));
       const source = await files.read(settings.recurringTasksPath);
 
-      expect(source).toBe("- [ ] Fazer designações 🔁 every year on June 15th 📅 2026-06-15 ⏰ 19:30 #tasks\n");
-      expect(annual).toContain("- [>] Fazer designações 🔁 every year on June 15th 📅 2026-06-15 ⏰ 19:30 #tasks");
-      expect(monthly).toContain("## [[01-AGENDA/2026/06/202606150000-SEGUNDA-FEIRA|15 - SEGUNDA-FEIRA]]");
-      expect(monthly).toContain("- [>] Fazer designações 📅 2026-06-15 ⏰ 19:30 #tasks");
-      expect(monthly).not.toContain("#tasks\n## [[01-AGENDA/2026/06/202606160000-TERÇA-FEIRA|16 - TERÇA-FEIRA]]");
-      expect(daily).toContain("- [ ] Fazer designações 📅 2026-06-15 ⏰ 19:30 #tasks");
+      expect(source).toBe("- [ ] Fazer designaÃ§Ãµes \u{1F501} every year on June 15th \u{1F4C5} 2026-06-15 \u23F0 19:30 #tasks\n");
+      expect(annual).toContain("- [>] Fazer designaÃ§Ãµes \u{1F501} every year on June 15th \u{1F4C5} 2026-06-15 \u23F0 19:30 #tasks");
+      expect(monthly).toContain("## [[01-AGENDA/2026/06/202606150001-SEGUNDA-FEIRA|15 - SEGUNDA-FEIRA]]");
+      expect(monthly).toContain("- [>] Fazer designaÃ§Ãµes \u{1F4C5} 2026-06-15 \u23F0 19:30 #tasks");
+      expect(monthly).not.toContain("#tasks\n## [[01-AGENDA/2026/06/202606160001-TER");
+      expect(daily).toContain("- [ ] Fazer designaÃ§Ãµes \u{1F4C5} 2026-06-15 \u23F0 19:30 #tasks");
     } finally {
       vi.useRealTimers();
     }
@@ -136,6 +183,7 @@ describe("memory vault integration", () => {
       const vault = new MemoryVault();
       const settings = {
         ...DEFAULT_SETTINGS,
+        weeklyEnabled: false,
         recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
       };
       const paths = new PathService(settings);
@@ -146,7 +194,7 @@ describe("memory vault integration", () => {
       await files.write(paths.annualPath(today), paths.renderAnnualLog(today));
       await files.write(paths.monthlyPath(today), paths.renderMonthlyLog(today));
       await files.write(paths.dailyPath(today), paths.renderDailyLog(today));
-      await files.write(paths.dailyPath(yesterday), `${paths.renderDailyLog(yesterday)}- [ ] Ligar para cliente\n- [ ] Compra agendada ⏳ 2026-06-14\n`);
+      await files.write(paths.dailyPath(yesterday), `${paths.renderDailyLog(yesterday)}- [ ] Ligar para cliente\n- [ ] Compra agendada \u23F3 2026-06-14\n`);
 
       const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
       await migration.run(today);
@@ -154,7 +202,7 @@ describe("memory vault integration", () => {
       const todayText = await files.read(paths.dailyPath(today));
       const yesterdayText = await files.read(paths.dailyPath(yesterday));
       expect(todayText).toContain("- [ ] Ligar para cliente");
-      expect(yesterdayText).toContain("- [-] Compra agendada ⏳ 2026-06-14");
+      expect(yesterdayText).toContain("- [-] Compra agendada \u23F3 2026-06-14");
       expect(yesterdayText).toContain("- [>] Ligar para cliente");
     } finally {
       vi.useRealTimers();
@@ -168,6 +216,7 @@ describe("memory vault integration", () => {
       const vault = new MemoryVault();
       const settings = {
         ...DEFAULT_SETTINGS,
+        weeklyEnabled: false,
         recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
       };
       const paths = new PathService(settings);
@@ -339,7 +388,7 @@ describe("memory vault integration", () => {
       await files.write(paths.dailyPath(today), paths.renderDailyLog(today));
       await files.write(
         paths.dailyPath(yesterday),
-        `${paths.renderDailyLog(yesterday)}- [ ] Sem data vem\n- [ ] Data antiga nao vem 📅 2026-06-01\n- [ ] Data de ontem vem 📅 2026-06-14\n`,
+        `${paths.renderDailyLog(yesterday)}- [ ] Sem data vem\n- [ ] Data antiga nao vem \u{1F4C5} 2026-06-01\n- [ ] Data de ontem vem \u{1F4C5} 2026-06-14\n`,
       );
 
       const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
@@ -347,8 +396,8 @@ describe("memory vault integration", () => {
 
       const todayText = await files.read(paths.dailyPath(today));
       expect(todayText).toContain("- [ ] Sem data vem");
-      expect(todayText).toContain("- [ ] Data de ontem vem 📅 2026-06-14");
-      expect(todayText).toContain("- [ ] Data antiga nao vem 📅 2026-06-01");
+      expect(todayText).toContain("- [ ] Data de ontem vem \u{1F4C5} 2026-06-14");
+      expect(todayText).toContain("- [ ] Data antiga nao vem \u{1F4C5} 2026-06-01");
     } finally {
       vi.useRealTimers();
     }
@@ -371,7 +420,7 @@ describe("memory vault integration", () => {
       await files.write(paths.monthlyPath(today), paths.renderMonthlyLog(today));
       await files.write(
         paths.dailyPath(today),
-        `${paths.renderDailyLog(today)}- [ ] Futura nao fica ⏳ 2026-06-25\n- [ ] Passada nao fica ⏳ 2026-06-14\n- [ ] Vencimento antigo fica 📅 2026-06-01\n`,
+        `${paths.renderDailyLog(today)}- [ ] Futura nao fica \u23F3 2026-06-25\n- [ ] Passada nao fica \u23F3 2026-06-14\n- [ ] Vencimento antigo fica \u{1F4C5} 2026-06-01\n`,
       );
 
       const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
@@ -380,7 +429,7 @@ describe("memory vault integration", () => {
       const todayText = await files.read(paths.dailyPath(today));
       expect(todayText).not.toContain("Futura nao fica");
       expect(todayText).not.toContain("Passada nao fica");
-      expect(todayText).toContain("- [ ] Vencimento antigo fica 📅 2026-06-01");
+      expect(todayText).toContain("- [ ] Vencimento antigo fica \u{1F4C5} 2026-06-01");
     } finally {
       vi.useRealTimers();
     }
@@ -393,6 +442,7 @@ describe("memory vault integration", () => {
       const vault = new MemoryVault();
       const settings = {
         ...DEFAULT_SETTINGS,
+        weeklyEnabled: false,
         recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
       };
       const paths = new PathService(settings);
@@ -402,12 +452,12 @@ describe("memory vault integration", () => {
       await files.write(paths.annualPath(today), paths.renderAnnualLog(today));
       let monthly = paths.renderMonthlyLog(today);
       monthly = monthly.replace(
-        "## [[01-AGENDA/2026/06/202606010000-SEGUNDA-FEIRA|01 - SEGUNDA-FEIRA]]\n",
-        "## [[01-AGENDA/2026/06/202606010000-SEGUNDA-FEIRA|01 - SEGUNDA-FEIRA]]\n\n- [>] Tarefa antiga do dia 1\n",
+        "## [[01-AGENDA/2026/06/202606010001-SEGUNDA-FEIRA|01 - SEGUNDA-FEIRA]]\n",
+        "## [[01-AGENDA/2026/06/202606010001-SEGUNDA-FEIRA|01 - SEGUNDA-FEIRA]]\n\n- [>] Tarefa antiga do dia 1\n",
       );
       monthly = monthly.replace(
-        "## [[01-AGENDA/2026/06/202606150000-SEGUNDA-FEIRA|15 - SEGUNDA-FEIRA]]\n",
-        "## [[01-AGENDA/2026/06/202606150000-SEGUNDA-FEIRA|15 - SEGUNDA-FEIRA]]\n\n- [>] Tarefa atual já marcada no mensal\n",
+        "## [[01-AGENDA/2026/06/202606150001-SEGUNDA-FEIRA|15 - SEGUNDA-FEIRA]]\n",
+        "## [[01-AGENDA/2026/06/202606150001-SEGUNDA-FEIRA|15 - SEGUNDA-FEIRA]]\n\n- [>] Tarefa atual jÃ¡ marcada no mensal\n",
       );
       await files.write(paths.monthlyPath(today), monthly);
       await files.write(paths.dailyPath(today), paths.renderDailyLog(today));
@@ -416,7 +466,7 @@ describe("memory vault integration", () => {
       await migration.run(today);
 
       const todayText = await files.read(paths.dailyPath(today));
-      expect(todayText).toContain("- [ ] Tarefa atual já marcada no mensal");
+      expect(todayText).toContain("- [ ] Tarefa atual jÃ¡ marcada no mensal");
       expect(todayText).not.toContain("Tarefa antiga do dia 1");
     } finally {
       vi.useRealTimers();

@@ -47,6 +47,21 @@ export class CascadeSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }),
         );
+
+      this.addToggle(section, "weeklyEnabled");
+
+      new Setting(section)
+        .setName(this.plugin.i18n.t("weeklyStructure"))
+        .addDropdown((dropdown) =>
+          dropdown
+            .addOption("folder-index", this.plugin.i18n.t("weeklyStructureFolderIndex"))
+            .addOption("flat", this.plugin.i18n.t("weeklyStructureFlat"))
+            .setValue(this.plugin.settings.weeklyStructure)
+            .onChange(async (value) => {
+              this.plugin.settings.weeklyStructure = value as typeof this.plugin.settings.weeklyStructure;
+              await this.plugin.saveSettings();
+            }),
+        );
     });
 
     this.renderSection("Formatos e templates", false, (section) => {
@@ -108,7 +123,10 @@ export class CascadeSettingTab extends PluginSettingTab {
     render(content);
   }
 
-  private addToggle(parent: HTMLElement, key: "openTodayOnStartup" | "runMigrationOnStartup" | "runNormalizerOnStartup" | "migrationEnabled" | "cancelExpiredScheduled"): void {
+  private addToggle(
+    parent: HTMLElement,
+    key: "openTodayOnStartup" | "runMigrationOnStartup" | "runNormalizerOnStartup" | "migrationEnabled" | "cancelExpiredScheduled" | "weeklyEnabled",
+  ): void {
     new Setting(parent)
       .setName(this.plugin.i18n.t(key))
       .addToggle((toggle) =>

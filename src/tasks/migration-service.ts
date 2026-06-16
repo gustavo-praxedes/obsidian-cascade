@@ -59,6 +59,7 @@ export class MigrationService {
   private async ensureCascadeFiles(date: Date): Promise<void> {
     await this.files.ensureFile(this.paths.annualPath(date), this.paths.renderAnnualLog(date));
     await this.files.ensureFile(this.paths.monthlyPath(date), this.paths.renderMonthlyLog(date));
+    if (this.paths.weeklyEnabled()) await this.files.ensureFile(this.paths.weeklyPath(date), this.paths.renderWeeklyLog(date));
     await this.files.ensureFile(this.paths.dailyPath(date), this.paths.renderDailyLog(date));
   }
 
@@ -111,11 +112,17 @@ export class MigrationService {
     const tasks = extractRecurringTasks(source);
     if (!tasks.length) return;
     const counts = looseKeyCounts(tasks.map((task) => task.line));
-    const monthlyPath = this.paths.monthlyPath(date);
-    const monthly = await this.files.read(monthlyPath);
-    let updated = monthly;
+    const targetPath = this.paths.weeklyEnabled() ? this.paths.weeklyPath(date) : this.paths.monthlyPath(date);
+    let updated = await this.files.read(targetPath);
     for (const task of tasks) {
       for (const occurrence of this.recurrence.datesInMonthForTask(task.line, date)) {
+        if (this.paths.weeklyEnabled()) {
+          await this.files.ensureFile(this.paths.weeklyPath(occurrence), this.paths.renderWeeklyLog(occurrence));
+          if (this.paths.weeklyPath(occurrence) !== targetPath) {
+            await this.insertRecurringOccurrence(task, counts, occurrence);
+            continue;
+          }
+        }
         const pred = dayHeadingPredicate(this.paths.dateInfo(occurrence).dd);
         const prepared = prepareRecurringTask(task, occurrence);
         if (hasUniqueLooseKey(task.line, counts)) {
@@ -125,30 +132,42 @@ export class MigrationService {
         updated = insertIntoSection(updated, pred, unique);
       }
     }
-    await this.files.write(monthlyPath, updated);
+    await this.files.write(targetPath, updated);
     await this.markAnnualRecurringMigrated(date);
   }
 
   async migrateMonthlyToDaily(date = new Date()): Promise<void> {
     const monthlyPath = this.paths.monthlyPath(date);
+    const weeklyPath = this.paths.weeklyPath(date);
     const dailyPath = this.paths.dailyPath(date);
     const monthly = await this.files.read(monthlyPath);
+    const weekly = this.paths.weeklyEnabled() ? await this.files.read(weeklyPath) : "";
     const daily = await this.files.read(dailyPath);
     const info = this.paths.dateInfo(date);
     const rootTasks = extractRootTasks(monthly).filter(isOpenTask);
     const migratedTasks = extractSectionTasks(monthly, migratedHeadingPredicate).filter(isOpenTask);
-    const dayTasks = extractSectionTasks(monthly, dayHeadingPredicate(info.dd)).filter(
+    const weeklyRootTasks = this.paths.weeklyEnabled() ? extractRootTasks(weekly).filter(isOpenTask) : [];
+    const weeklyMigratedTasks = this.paths.weeklyEnabled() ? extractSectionTasks(weekly, migratedHeadingPredicate).filter(isOpenTask) : [];
+    const daySource = this.paths.weeklyEnabled() ? weekly : monthly;
+    const dayTasks = extractSectionTasks(daySource, dayHeadingPredicate(info.dd)).filter(
       (task) => (task.status === " " || task.status === ">") && isDueForDay(task.line, date),
     );
-    const tasks = [...rootTasks, ...migratedTasks, ...dayTasks];
+    const tasks = [...rootTasks, ...migratedTasks, ...weeklyRootTasks, ...weeklyMigratedTasks, ...dayTasks];
     const unique = uniqueNewPreparedTasks(extractTasksWithSubtasks(daily), tasks.map((task) => prepareMigratedBlock(task.block)));
     if (!unique.length) return;
     await this.files.write(dailyPath, insertAfterH1Compat(daily, unique));
     let updatedMonthly = monthly;
-    for (const task of tasks.filter((task) => task.status === " " && unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)))) {
+    let updatedWeekly = weekly;
+    for (const task of [...rootTasks, ...migratedTasks].filter((task) => task.status === " " && unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)))) {
       updatedMonthly = markMigratedTaskBlockInContent(updatedMonthly, task);
     }
+    for (const task of [...weeklyRootTasks, ...weeklyMigratedTasks, ...dayTasks].filter(
+      (task) => task.status === " " && unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)),
+    )) {
+      updatedWeekly = markMigratedTaskBlockInContent(updatedWeekly, task);
+    }
     await this.files.write(monthlyPath, updatedMonthly);
+    if (this.paths.weeklyEnabled()) await this.files.write(weeklyPath, updatedWeekly);
   }
 
   async migratePreviousDays(date = new Date()): Promise<void> {
@@ -210,6 +229,14 @@ export class MigrationService {
       const normalizedMonthly = normalizeLogTextSpacing(monthly);
       if (normalizedMonthly !== monthly) await this.files.write(monthlyPath, normalizedMonthly);
     }
+    if (this.paths.weeklyEnabled()) {
+      const weeklyPath = this.paths.weeklyPath(date);
+      const weekly = await this.files.read(weeklyPath);
+      if (weekly) {
+        const normalizedWeekly = normalizeLogTextSpacing(weekly);
+        if (normalizedWeekly !== weekly) await this.files.write(weeklyPath, normalizedWeekly);
+      }
+    }
   }
 
   private async markAnnualRecurringMigrated(date: Date): Promise<void> {
@@ -224,6 +251,18 @@ export class MigrationService {
       updated = updated.replace(task.line, markMigrated(task.line));
     }
     if (updated !== annual) await this.files.write(annualPath, updated);
+  }
+
+  private async insertRecurringOccurrence(task: TaskBlock, counts: Map<string, number>, occurrence: Date): Promise<void> {
+    const targetPath = this.paths.weeklyEnabled() ? this.paths.weeklyPath(occurrence) : this.paths.monthlyPath(occurrence);
+    const target = await this.files.read(targetPath);
+    const pred = dayHeadingPredicate(this.paths.dateInfo(occurrence).dd);
+    const prepared = prepareRecurringTask(task, occurrence);
+    if (hasUniqueLooseKey(task.line, counts)) {
+      // Replacement preserves the current task status when the operational copy already exists.
+    }
+    const unique = uniqueNewPreparedTasks(extractSectionTasks(target, pred), [prepared]);
+    if (unique.length) await this.files.write(targetPath, insertIntoSection(target, pred, unique));
   }
 }
 
