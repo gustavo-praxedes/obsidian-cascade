@@ -41,10 +41,6 @@ export class PathService {
     return this.settings.weeklyEnabled;
   }
 
-  weeklyUsesFolder(): boolean {
-    return this.settings.weeklyEnabled && this.settings.weeklyStructure === "folder-index";
-  }
-
   weekDates(date = new Date()): Date[] {
     const weekStart = startOfWeek(date, 1);
     return Array.from({ length: 7 }, (_, offset) => addDays(weekStart, offset));
@@ -89,12 +85,12 @@ export class PathService {
 
   yearFolder(date = new Date()): string {
     const info = this.dateInfo(date);
-    return normalizeVaultPath(`${this.settings.agendaRoot}/${info.yyyy}`);
+    return normalizeVaultPath(renderFormat(this.settings.yearlyFolder, info));
   }
 
   monthFolder(date = new Date()): string {
     const info = this.dateInfo(date);
-    return normalizeVaultPath(`${this.yearFolder(date)}/${info.mm}`);
+    return normalizeVaultPath(renderFormat(this.settings.monthlyFolder, info));
   }
 
   annualPath(date = new Date()): string {
@@ -107,12 +103,8 @@ export class PathService {
 
   weeklyPath(date = new Date()): string {
     const base = this.weeklyBase(date);
-    const parent = this.weeklyUsesFolder() ? this.weeklyFolder(date) : this.monthFolder(date);
+    const parent = normalizeVaultPath(renderFormat(this.settings.weeklyFolder, this.weeklyDateInfo(date)));
     return normalizeVaultPath(`${parent}/${base}.md`);
-  }
-
-  weeklyFolder(date = new Date()): string {
-    return normalizeVaultPath(`${this.monthFolder(date)}/${this.weeklyBase(date)}`);
   }
 
   weeklyBase(date = new Date()): string {
@@ -120,7 +112,7 @@ export class PathService {
   }
 
   dailyPath(date = new Date()): string {
-    const parent = this.weeklyUsesFolder() ? this.weeklyFolder(date) : this.monthFolder(date);
+    const parent = normalizeVaultPath(renderFormat(this.settings.dailyFolder, this.dateInfo(date)));
     return normalizeVaultPath(`${parent}/${this.dailyBase(date)}.md`);
   }
 

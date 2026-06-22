@@ -71,6 +71,20 @@ export default class CascadePlugin extends Plugin {
     this.app.workspace.onLayoutReady(() => {
       void startup.run().catch((error) => console.error("Cascade startup failed", error));
     });
+
+    this.addCommand({
+      id: "start-cascade",
+      name: "Start Cascade",
+      callback: async () => {
+        try {
+          await startup.run(true);
+          new Notice(this.i18n.t("noticeMigrationDone") ?? "Cascade iniciado");
+        } catch (error) {
+          console.error(error);
+          new Notice("Erro ao iniciar o Cascade");
+        }
+      },
+    });
   }
 
   onunload(): void {

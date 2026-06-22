@@ -2,6 +2,8 @@ import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import type CascadePlugin from "../main";
 
 export class CascadeSettingTab extends PluginSettingTab {
+  private openSections: Set<string> | null = null;
+
   constructor(
     app: App,
     private readonly plugin: CascadePlugin,
@@ -10,13 +12,17 @@ export class CascadeSettingTab extends PluginSettingTab {
   }
 
   display(): void {
+    if (!this.openSections) {
+      this.openSections = new Set();
+    }
+
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: this.plugin.i18n.t("settingsTitle") });
+    containerEl.createEl("h2", { text: "Cascade Settings" });
 
-    this.renderSection("Agenda", true, (section) => {
+    this.renderSection("Geral", true, (section) => {
       new Setting(section)
-        .setName(this.plugin.i18n.t("language"))
+        .setName("Language")
         .addDropdown((dropdown) => {
           dropdown
             .addOption("auto", "Auto")
@@ -24,127 +30,225 @@ export class CascadeSettingTab extends PluginSettingTab {
             .addOption("en-US", "en-US")
             .setValue(this.plugin.settings.language)
             .onChange(async (value) => {
-              this.plugin.settings.language = value as typeof this.plugin.settings.language;
+              this.plugin.settings.language = value as any;
               await this.plugin.saveSettings();
               this.display();
             });
         });
 
       new Setting(section)
-        .setName(this.plugin.i18n.t("agendaRoot"))
-        .addText((text) =>
-          text.setValue(this.plugin.settings.agendaRoot).onChange(async (value) => {
-            this.plugin.settings.agendaRoot = value.trim();
-            await this.plugin.saveSettings();
-          }),
-        );
-
-      new Setting(section)
-        .setName(this.plugin.i18n.t("recurringTasksPath"))
-        .addText((text) =>
-          text.setValue(this.plugin.settings.recurringTasksPath).onChange(async (value) => {
-            this.plugin.settings.recurringTasksPath = value.trim();
-            await this.plugin.saveSettings();
-          }),
-        );
-
-      this.addToggle(section, "weeklyEnabled");
-
-      new Setting(section)
-        .setName(this.plugin.i18n.t("weeklyStructure"))
-        .addDropdown((dropdown) =>
-          dropdown
-            .addOption("folder-index", this.plugin.i18n.t("weeklyStructureFolderIndex"))
-            .addOption("flat", this.plugin.i18n.t("weeklyStructureFlat"))
-            .setValue(this.plugin.settings.weeklyStructure)
-            .onChange(async (value) => {
-              this.plugin.settings.weeklyStructure = value as typeof this.plugin.settings.weeklyStructure;
-              await this.plugin.saveSettings();
-            }),
-        );
-    });
-
-    this.renderSection("Formatos e templates", false, (section) => {
-      this.addText(section, "Formato diario", "Formato do nome do arquivo diario.", "dailyFormat");
-      this.addText(section, "Formato semanal", "Formato do nome do arquivo semanal.", "weeklyFormat");
-      this.addText(section, "Formato mensal", "Formato do nome do arquivo mensal.", "monthlyFormat");
-      this.addText(section, "Formato anual", "Formato do nome do arquivo anual.", "yearlyFormat");
-      this.addText(section, "Formato de nota comum", "Formato do nome para notas comuns.", "noteFormat");
-      this.addText(section, "Pasta de templates", "Pasta raiz usada para localizar templates.", "templatesFolder");
-      this.addText(section, "Template diario", "Template usado ao criar logs diarios.", "dailyTemplate");
-      this.addText(section, "Template semanal", "Template usado ao criar logs semanais.", "weeklyTemplate");
-      this.addText(section, "Template mensal", "Template usado ao criar logs mensais.", "monthlyTemplate");
-      this.addText(section, "Template anual", "Template usado ao criar logs anuais.", "yearlyTemplate");
-    });
-
-    this.renderSection("Startup e migracao", false, (section) => {
-      this.addToggle(section, "openTodayOnStartup");
-      this.addToggle(section, "runMigrationOnStartup");
-      this.addToggle(section, "runNormalizerOnStartup");
-      this.addToggle(section, "migrationEnabled");
-      this.addToggle(section, "cancelExpiredScheduled");
-      new Setting(section)
-        .setName("Dias anteriores para buscar tarefas abertas")
-        .setDesc("Limite de dias antes de hoje que o Cascade verifica ao carregar tarefas pendentes.")
-        .addSlider((slider) =>
-          slider
-            .setLimits(0, 30, 1)
-            .setValue(this.plugin.settings.previousDayMigrationLookbackDays)
-            .setDynamicTooltip()
-            .onChange(async (value) => {
-              this.plugin.settings.previousDayMigrationLookbackDays = value;
-              await this.plugin.saveSettings();
-            }),
-        );
-
-      new Setting(section)
-        .setName("Concluir pais e filhas automaticamente")
-        .setDesc("Ao concluir uma tarefa pai, conclui filhas abertas/em progresso; ao concluir todas as filhas, conclui a pai.")
+        .setName("Start Cascade On Startup")
         .addToggle((toggle) =>
-          toggle.setValue(this.plugin.settings.autoCompleteTaskFamilies).onChange(async (value) => {
-            this.plugin.settings.autoCompleteTaskFamilies = value;
+          toggle.setValue(this.plugin.settings.startCascadeOnStartup).onChange(async (value) => {
+            this.plugin.settings.startCascadeOnStartup = value;
             await this.plugin.saveSettings();
-          }),
+            this.display();
+          })
         );
+        
+      if (!this.plugin.settings.startCascadeOnStartup) {
+        new Setting(section)
+          .setName("Manual Start")
+          .setDesc("Como o Cascade não inicia automaticamente, você pode iniciar manualmente aqui.")
+          .addButton((button) => {
+            button.setButtonText("Start Cascade").onClick(() => {
+              // @ts-ignore
+              this.app.commands.executeCommandById("obsidian-cascade:start-cascade");
+            });
+          });
+      }
     });
 
-    this.renderSection("Status de checkbox", false, (section) => this.renderStatusSettings(section));
+    this.renderSection("Agenda", false, (section) => {
+      this.addToggle(section, "openTodayOnStartup", "Open Today on Startup");
+      this.addText(section, "Agenda Root", "", "agendaRoot");
 
-    // Internal startup controls intentionally kept out of the UI for now:
-    // startupWaitMaxSeconds, startupVaultIdleSeconds, and runMigrationOnManualOpen.
-    // Uncomment explicit Setting controls here when the user decides to expose them.
+      this.addToggleRefresh(section, "yearlyEnabled", "Yearly Enabled");
+      if (this.plugin.settings.yearlyEnabled) {
+        this.addText(section, "Yearly Format", "", "yearlyFormat");
+        this.addText(section, "Yearly Template", "", "yearlyTemplate");
+        this.addText(section, "Yearly Folder", "", "yearlyFolder");
+        new Setting(section).setName("Operational Year Start Month (1 = Jan)").addText(t => 
+           t.setValue(String(this.plugin.settings.operationalYearStartMonth)).onChange(async v => {
+              this.plugin.settings.operationalYearStartMonth = Number(v);
+              await this.plugin.saveSettings();
+           })
+        );
+      }
+
+      this.addToggleRefresh(section, "monthlyEnabled", "Monthly Enabled");
+      if (this.plugin.settings.monthlyEnabled) {
+        this.addText(section, "Monthly Format", "", "monthlyFormat");
+        this.addText(section, "Monthly Template", "", "monthlyTemplate");
+        this.addText(section, "Monthly Folder", "", "monthlyFolder");
+      }
+
+      this.addToggleRefresh(section, "weeklyEnabled", "Weekly Enabled");
+      if (this.plugin.settings.weeklyEnabled) {
+        this.addText(section, "Weekly Format", "", "weeklyFormat");
+        this.addText(section, "Weekly Template", "", "weeklyTemplate");
+        this.addText(section, "Weekly Folder", "", "weeklyFolder");
+        new Setting(section).setName("Operational Weekly Start Day (0 = Dom, 1 = Seg)").addText(t => 
+           t.setValue(String(this.plugin.settings.operationalWeeklyStartDay)).onChange(async v => {
+              this.plugin.settings.operationalWeeklyStartDay = Number(v) as 0|1;
+              await this.plugin.saveSettings();
+           })
+        );
+      }
+
+      this.addToggleRefresh(section, "dailyEnabled", "Daily Enabled");
+      if (this.plugin.settings.dailyEnabled) {
+        this.addText(section, "Daily Format", "", "dailyFormat");
+        this.addText(section, "Daily Template", "", "dailyTemplate");
+        this.addText(section, "Daily Folder", "", "dailyFolder");
+      }
+
+      this.addToggleRefresh(section, "noteEnabled", "Note Enabled");
+      if (this.plugin.settings.noteEnabled) {
+        this.addText(section, "Note Format", "", "noteFormat");
+        this.addText(section, "Note Template", "", "noteTemplate");
+        this.addText(section, "Note Folder", "", "noteFolder");
+      }
+    });
+
+    this.renderSection("Migração", false, (section) => {
+      this.addToggle(section, "runMigrationOnStartup", "Run Migration on Startup");
+      this.addToggle(section, "runMigrationOnManualOpen", "Run Migration on Manual Open");
+    });
+
+    this.renderSection("Normalização", false, (section) => {
+      this.addToggleRefresh(section, "normalizerEnabled", "Normalizer Enabled");
+      if (!this.plugin.settings.normalizerEnabled) {
+        this.addToggleRefresh(section, "runNormalizerOnStartup", "Run Normalizer on Startup");
+        if (!this.plugin.settings.runNormalizerOnStartup) {
+          new Setting(section).setName("Normalize Delay Seconds").addText(t => 
+             t.setValue(String(this.plugin.settings.normalizeDelaySeconds)).onChange(async v => {
+                this.plugin.settings.normalizeDelaySeconds = Number(v);
+                await this.plugin.saveSettings();
+             })
+          );
+        }
+      }
+
+      new Setting(section).setName("Normalizer Case").addDropdown(d => 
+         d.addOption("none", "Não")
+          .addOption("uppercase", "Todos para maiúsculas")
+          .addOption("lowercase", "Todos para minúsculas")
+          .setValue(this.plugin.settings.normalizerCase)
+          .onChange(async v => {
+            this.plugin.settings.normalizerCase = v as any;
+            await this.plugin.saveSettings();
+          })
+      );
+      this.addToggle(section, "normalizerAccents", "Normalizer Accents");
+      this.addToggle(section, "addTimestamp", "Add Timestamp");
+
+      new Setting(section).setName("Normalizer Scopes").setDesc("Um caminho por linha.").addTextArea(t => 
+         t.setValue(this.plugin.settings.normalizerScopes.join("\n")).onChange(async v => {
+            this.plugin.settings.normalizerScopes = v.split("\n").map(s => s.trim()).filter(s => s);
+            await this.plugin.saveSettings();
+         })
+      );
+
+      new Setting(section).setName("Normalizer Ignored").setDesc("Um caminho por linha.").addTextArea(t => 
+         t.setValue(this.plugin.settings.normalizerIgnored.join("\n")).onChange(async v => {
+            this.plugin.settings.normalizerIgnored = v.split("\n").map(s => s.trim()).filter(s => s);
+            await this.plugin.saveSettings();
+         })
+      );
+    });
+
+    this.renderSection("Tarefas", false, (section) => {
+      this.addToggleRefresh(section, "migrationEnabled", "Migration Enabled");
+      if (this.plugin.settings.migrationEnabled) {
+         this.addText(section, "Recurring Tasks Path", "", "recurringTasksPath");
+         this.addToggle(section, "taskSetCreatedDate", "Set Created Date");
+         this.addToggle(section, "taskSetDoneDate", "Set Done Date");
+         this.addToggle(section, "cancelExpiredScheduled", "Cancel Expired Scheduled");
+         new Setting(section).setName("Previous Day Migration Lookback").addText(t => 
+            t.setValue(String(this.plugin.settings.previousDayMigrationLookbackDays)).onChange(async v => {
+               this.plugin.settings.previousDayMigrationLookbackDays = Number(v);
+               await this.plugin.saveSettings();
+            })
+         );
+         this.addToggle(section, "autoCompleteTaskFamilies", "Auto Complete Task Families");
+         this.addText(section, "Task Global Filter", "", "taskGlobalFilter");
+      }
+    });
+
+    this.renderSection("Checkbox", false, (section) => this.renderStatusSettings(section));
+
+    this.renderSection("Calendário", false, (section) => {
+      new Setting(section).setName("First Day Of Week (0=Dom, 1=Seg)").addText(t => 
+         t.setValue(String(this.plugin.settings.calendarFirstDayOfWeek)).onChange(async v => {
+            this.plugin.settings.calendarFirstDayOfWeek = Number(v) as 0|1;
+            await this.plugin.saveSettings();
+         })
+      );
+      this.addToggle(section, "calendarShowWeekNumber", "Show Week Number");
+      this.addToggle(section, "calendarOpenInNewLeaf", "Open In New Leaf");
+      this.addToggle(section, "calendarConfirmCreate", "Confirm Create");
+    });
+
+    this.renderSection("Frontmatter", false, (section) => {
+      this.addToggle(section, "frontmatterEnabled", "Enabled");
+      this.addText(section, "Created Key", "", "frontmatterCreatedKey");
+      this.addText(section, "Updated Key", "", "frontmatterUpdatedKey");
+      this.addText(section, "Date Format", "", "frontmatterDateFormat");
+      new Setting(section).setName("Ignored Paths").setDesc("Um caminho por linha.").addTextArea(t => 
+         t.setValue(this.plugin.settings.frontmatterIgnoredPaths.join("\n")).onChange(async v => {
+            this.plugin.settings.frontmatterIgnoredPaths = v.split("\n").map(s => s.trim()).filter(s => s);
+            await this.plugin.saveSettings();
+         })
+      );
+    });
   }
 
-  private renderSection(title: string, open: boolean, render: (container: HTMLElement) => void): void {
+  private renderSection(title: string, defaultOpen: boolean, render: (container: HTMLElement) => void): void {
     const details = this.containerEl.createEl("details", { cls: "cascade-settings-section" });
-    details.open = open;
+    details.open = this.openSections!.has(title);
+    details.addEventListener("toggle", () => {
+      if (details.open) {
+        this.openSections!.add(title);
+      } else {
+        this.openSections!.delete(title);
+      }
+    });
     details.createEl("summary", { text: title });
     const content = details.createDiv({ cls: "cascade-settings-section__content" });
     render(content);
   }
 
-  private addToggle(
-    parent: HTMLElement,
-    key: "openTodayOnStartup" | "runMigrationOnStartup" | "runNormalizerOnStartup" | "migrationEnabled" | "cancelExpiredScheduled" | "weeklyEnabled",
-  ): void {
+  private addToggle(parent: HTMLElement, key: keyof typeof this.plugin.settings, name: string): void {
     new Setting(parent)
-      .setName(this.plugin.i18n.t(key))
+      .setName(name)
       .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings[key]).onChange(async (value) => {
-          this.plugin.settings[key] = value;
+        toggle.setValue(this.plugin.settings[key] as boolean).onChange(async (value) => {
+          (this.plugin.settings as any)[key] = value;
           await this.plugin.saveSettings();
-          new Notice(this.plugin.i18n.t("settingsSaved"));
         }),
       );
   }
 
-  private addText(parent: HTMLElement, name: string, desc: string, key: TextSettingKey): void {
+  private addToggleRefresh(parent: HTMLElement, key: keyof typeof this.plugin.settings, name: string): void {
+    new Setting(parent)
+      .setName(name)
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings[key] as boolean).onChange(async (value) => {
+          (this.plugin.settings as any)[key] = value;
+          await this.plugin.saveSettings();
+          this.display();
+        }),
+      );
+  }
+
+  private addText(parent: HTMLElement, name: string, desc: string, key: keyof typeof this.plugin.settings): void {
     new Setting(parent)
       .setName(name)
       .setDesc(desc)
       .addText((text) =>
         text.setValue(String(this.plugin.settings[key] ?? "")).onChange(async (value) => {
-          this.plugin.settings[key] = value.trim() as never;
+          (this.plugin.settings as any)[key] = value.trim();
           await this.plugin.saveSettings();
         }),
       );
@@ -224,15 +328,3 @@ export class CascadeSettingTab extends PluginSettingTab {
     return input;
   }
 }
-
-type TextSettingKey =
-  | "dailyFormat"
-  | "weeklyFormat"
-  | "monthlyFormat"
-  | "yearlyFormat"
-  | "noteFormat"
-  | "templatesFolder"
-  | "dailyTemplate"
-  | "weeklyTemplate"
-  | "monthlyTemplate"
-  | "yearlyTemplate";

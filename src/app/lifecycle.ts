@@ -23,7 +23,11 @@ export class StartupOrchestrator {
     register(this.vault.on("delete", () => (this.lastVaultChange = Date.now())));
   }
 
-  async run(): Promise<void> {
+  async run(manual = false): Promise<void> {
+    if (!this.settings.startCascadeOnStartup && !manual) {
+      return;
+    }
+    
     await this.waitForStartupCondition();
     if (this.settings.openTodayOnStartup) await this.notes.openToday();
     else await this.notes.createDaily();
@@ -32,7 +36,6 @@ export class StartupOrchestrator {
   }
 
   private async waitForStartupCondition(): Promise<void> {
-    await sleep(this.settings.startupDelaySeconds * 1000);
     const condition = this.settings.startupWaitCondition;
     if (condition === "fixed") return;
     const started = Date.now();

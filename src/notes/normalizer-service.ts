@@ -14,9 +14,20 @@ export class NormalizerService {
     if (!this.settings.normalizerEnabled || RENAMES.has(file.path) || !this.inScope(file.path)) return;
     const folder = file.parent?.path ?? "";
     const extension = file.extension ? `.${file.extension}` : "";
-    const timestamp = this.settings.normalizerTimestamp ? timestampFromName(file.basename) : "";
-    const slug = this.settings.normalizerUppercase ? titleSlug(file.basename.replace(/^\d{12}-?/, "")) : file.basename;
-    const basename = `${timestamp}${timestamp ? "-" : ""}${slug}`;
+    const timestamp = this.settings.addTimestamp ? timestampFromName(file.basename) : "";
+    
+    let slug = file.basename.replace(/^\d{12}-?/, "");
+    if (this.settings.normalizerCase !== "none" || !this.settings.normalizerAccents) {
+      // Basic slugification if we are modifying case or accents
+      slug = slug.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "");
+    }
+    if (!this.settings.normalizerAccents) {
+      slug = slug.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+    }
+    if (this.settings.normalizerCase === "uppercase") slug = slug.toUpperCase();
+    else if (this.settings.normalizerCase === "lowercase") slug = slug.toLowerCase();
+
+    const basename = `${timestamp}${timestamp && slug ? "-" : ""}${slug}`;
     const target = normalizePath(`${folder}/${basename}${extension}`);
     if (target === file.path) return;
     const unique = await this.uniquePath(target);
@@ -29,6 +40,9 @@ export class NormalizerService {
   }
 
   async normalizeAll(): Promise<void> {
+    if (this.settings.normalizeDelaySeconds > 0) {
+      await new Promise((resolve) => window.setTimeout(resolve, this.settings.normalizeDelaySeconds * 1000));
+    }
     for (const file of this.vault.getMarkdownFiles()) {
       await this.normalizeFile(file);
     }
