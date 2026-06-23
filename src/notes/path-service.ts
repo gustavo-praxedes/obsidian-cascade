@@ -129,6 +129,13 @@ export class PathService {
     return renderFormat(this.settings.dailyFormat, this.dateInfo(date));
   }
 
+  dailyPrefix(date = new Date()): string {
+    const basePrefix = this.dailyBase(date).match(/^\d{12}/)?.[0];
+    if (basePrefix) return basePrefix;
+    const info = this.dateInfo(date);
+    return `${info.yyyy}${info.mm}${info.dd}`;
+  }
+
   renderAnnualLog(date = new Date()): string {
     const year = this.operationalYear(date);
     const created = isoMinute();

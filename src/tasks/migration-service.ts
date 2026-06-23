@@ -60,7 +60,7 @@ export class MigrationService {
     await this.files.ensureFile(this.paths.annualPath(date), this.paths.renderAnnualLog(date));
     await this.files.ensureFile(this.paths.monthlyPath(date), this.paths.renderMonthlyLog(date));
     if (this.paths.weeklyEnabled()) await this.files.ensureFile(this.paths.weeklyPath(date), this.paths.renderWeeklyLog(date));
-    await this.files.ensureFile(this.paths.dailyPath(date), this.paths.renderDailyLog(date));
+    await this.files.ensureFile(this.dailyPath(date), this.paths.renderDailyLog(date));
   }
 
   private async ensureMonthly(date: Date): Promise<void> {
@@ -139,7 +139,7 @@ export class MigrationService {
   async migrateMonthlyToDaily(date = new Date()): Promise<void> {
     const monthlyPath = this.paths.monthlyPath(date);
     const weeklyPath = this.paths.weeklyPath(date);
-    const dailyPath = this.paths.dailyPath(date);
+    const dailyPath = this.dailyPath(date);
     const monthly = await this.files.read(monthlyPath);
     const weekly = this.paths.weeklyEnabled() ? await this.files.read(weeklyPath) : "";
     const daily = await this.files.read(dailyPath);
@@ -179,8 +179,8 @@ export class MigrationService {
 
   async migratePreviousDay(date = new Date(), offsetDays = 1): Promise<void> {
     const previous = addDays(date, -offsetDays);
-    const previousPath = this.paths.dailyPath(previous);
-    const todayPath = this.paths.dailyPath(date);
+    const previousPath = this.dailyPath(previous);
+    const todayPath = this.dailyPath(date);
     const previousContent = await this.files.read(previousPath);
     if (!previousContent) return;
     const todayContent = await this.files.read(todayPath);
@@ -205,7 +205,7 @@ export class MigrationService {
   }
 
   async removeFutureScheduledFromDaily(date = new Date()): Promise<void> {
-    const dailyPath = this.paths.dailyPath(date);
+    const dailyPath = this.dailyPath(date);
     const daily = await this.files.read(dailyPath);
     if (!daily) return;
     let updated = daily;
@@ -217,7 +217,7 @@ export class MigrationService {
   }
 
   private async normalizeLogSpacing(date: Date): Promise<void> {
-    const dailyPath = this.paths.dailyPath(date);
+    const dailyPath = this.dailyPath(date);
     const daily = await this.files.read(dailyPath);
     if (daily) {
       const normalizedDaily = normalizeLogTextSpacing(removeMigratedChildrenFromOpenBlocks(daily));
@@ -251,6 +251,10 @@ export class MigrationService {
       updated = updated.replace(task.line, markMigrated(task.line));
     }
     if (updated !== annual) await this.files.write(annualPath, updated);
+  }
+
+  private dailyPath(date: Date): string {
+    return this.files.findMarkdownByBasenamePrefix(this.paths.dailyPrefix(date))?.path ?? this.paths.dailyPath(date);
   }
 
   private async insertRecurringOccurrence(task: TaskBlock, counts: Map<string, number>, occurrence: Date): Promise<void> {

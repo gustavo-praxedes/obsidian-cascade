@@ -96,6 +96,44 @@ describe("memory vault integration", () => {
     }
   });
 
+  it("reuses an existing normalized daily note instead of creating an accented duplicate", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 16, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        agendaRoot: "AGENDA",
+        dailyFolder: "DIA",
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const repair = new RepairService(paths);
+      const templates = new TemplateService(vault as any, settings);
+      const opened: string[] = [];
+      const app = {
+        vault,
+        workspace: {
+          getLeaf: () => ({
+            openFile: async (file: TFile) => opened.push(file.path),
+          }),
+        },
+      };
+      const notes = new NoteService(app as any, paths, files, repair, templates, settings);
+      const normalizedPath = "AGENDA/DIA/202606160001-TERCA-FEIRA.md";
+
+      await files.write("NOTAS/202606161030-NOTA-COMUM.md", "# Nota comum\n");
+      await files.write(normalizedPath, paths.renderDailyLog(new Date(2026, 5, 16)));
+      await notes.openDate(new Date(2026, 5, 16));
+
+      expect(vault.files.has(normalizedPath)).toBe(true);
+      expect(vault.files.has("AGENDA/DIA/202606160001-TERÇA-FEIRA.md")).toBe(false);
+      expect(opened).toEqual([normalizedPath]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("creates notes and migrates recurring tasks with custom folders and weekly notes", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 5, 16, 11, 20));

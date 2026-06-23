@@ -47,6 +47,10 @@ export class FileService {
     return Boolean(this.getFile(path));
   }
 
+  findMarkdownByBasenamePrefix(prefix: string): TFile | null {
+    return this.vault.getMarkdownFiles().find((file) => file.basename.startsWith(prefix)) ?? null;
+  }
+
   getFile(path: string): TFile | null {
     const abstract = this.vault.getAbstractFileByPath(normalizePath(path));
     return abstract instanceof TFile ? abstract : null;

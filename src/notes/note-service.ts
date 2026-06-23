@@ -52,6 +52,11 @@ export class NoteService {
 
   async createDaily(date = new Date()): Promise<TFile> {
     await this.createWeekly(date);
+    const existing = this.files.findMarkdownByBasenamePrefix(this.paths.dailyPrefix(date));
+    if (existing) {
+      await this.repairIfNeeded(existing.path, "daily", date);
+      return existing;
+    }
     const path = this.paths.dailyPath(date);
     const title = this.paths.dailyBase(date);
     const fallback = this.paths.renderDailyLog(date);

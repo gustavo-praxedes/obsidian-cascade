@@ -40,7 +40,10 @@ export class StartupOrchestrator {
     if (condition === "fixed") return;
     const started = Date.now();
     while (Date.now() - started < this.settings.startupWaitMaxSeconds * 1000) {
-      const dailyExists = this.vault.getAbstractFileByPath(this.paths.dailyPath(new Date()));
+      const today = new Date();
+      const dailyExists =
+        this.vault.getAbstractFileByPath(this.paths.dailyPath(today)) ||
+        this.vault.getMarkdownFiles().some((file) => file.basename.startsWith(this.paths.dailyPrefix(today)));
       const idle = Date.now() - this.lastVaultChange >= this.settings.startupVaultIdleSeconds * 1000;
       if (condition === "until-daily" && dailyExists) return;
       if (condition === "until-vault-idle" && idle) return;

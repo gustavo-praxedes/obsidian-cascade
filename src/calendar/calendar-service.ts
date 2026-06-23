@@ -29,8 +29,6 @@ export class CalendarService {
 
     // Fallback: busca por prefixo numérico de data no vault inteiro
     // Isso cobre casos onde a normalização mudou o nome (acentos, case, etc.)
-    const info = this.paths.dateInfo(date);
-    const prefix = `${info.yyyy}${info.mm}${info.dd}`;
-    return this.vault.getMarkdownFiles().some((f) => f.basename.startsWith(prefix));
+    return this.vault.getMarkdownFiles().some((f) => f.basename.startsWith(this.paths.dailyPrefix(date)));
   }
 }
