@@ -35,7 +35,6 @@ export interface CascadeSettings {
   weeklyFormat: string;
   weeklyTemplate: string;
   weeklyFolder: string;
-  operationalWeeklyStartDay: 0 | 1;
 
   monthlyEnabled: boolean;
   monthlyFormat: string;

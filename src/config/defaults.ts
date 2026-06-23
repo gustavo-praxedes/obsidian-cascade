@@ -43,7 +43,6 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
   weeklyFormat: "YYYYMMdd0000-[S]-WW",
   weeklyTemplate: "",
   weeklyFolder: "",
-  operationalWeeklyStartDay: 0,
 
   monthlyEnabled: true,
   monthlyFormat: "YYYYMM000000-MMM",

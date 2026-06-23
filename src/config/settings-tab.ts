@@ -88,12 +88,6 @@ export class CascadeSettingTab extends PluginSettingTab {
         this.addText(section, "Weekly Format", "", "weeklyFormat");
         this.addText(section, "Weekly Template", "", "weeklyTemplate");
         this.addText(section, "Weekly Folder", "", "weeklyFolder");
-        new Setting(section).setName("Operational Weekly Start Day (0 = Dom, 1 = Seg)").addText(t => 
-           t.setValue(String(this.plugin.settings.operationalWeeklyStartDay)).onChange(async v => {
-              this.plugin.settings.operationalWeeklyStartDay = Number(v) as 0|1;
-              await this.plugin.saveSettings();
-           })
-        );
       }
 
       new Setting(section).setName("Daily").setHeading();
