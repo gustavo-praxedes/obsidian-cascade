@@ -1,6 +1,5 @@
 import { TFile, normalizePath, type App } from "obsidian";
 import type { CascadeSettings } from "../config/schema";
-import { titleSlug } from "./path-service";
 
 const RENAMES = new Set<string>();
 
@@ -32,6 +31,7 @@ export class NormalizerService {
     }
     if (this.settings.normalizerCase === "uppercase") slug = slug.toUpperCase();
     else if (this.settings.normalizerCase === "lowercase") slug = slug.toLowerCase();
+    else if (this.settings.normalizerCase === "title") slug = titleCaseSlug(slug);
 
     const basename = `${timestamp}${timestamp && slug ? "-" : ""}${slug}`;
     const target = normalizePath(`${folder}/${basename}${extension}`);
@@ -84,4 +84,14 @@ function timestampFromName(name: string): string {
 
 function pad(value: number): string {
   return String(value).padStart(2, "0");
+}
+
+function titleCaseSlug(value: string): string {
+  return value
+    .split("-")
+    .map((part) => {
+      const [first = "", ...rest] = [...part.toLocaleLowerCase("pt-BR")];
+      return `${first.toLocaleUpperCase("pt-BR")}${rest.join("")}`;
+    })
+    .join("-");
 }

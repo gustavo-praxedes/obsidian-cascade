@@ -116,9 +116,10 @@ export class CascadeSettingTab extends PluginSettingTab {
       }
 
       new Setting(section).setName("Normalizer Case").addDropdown(d => 
-         d.addOption("none", "Não")
-          .addOption("uppercase", "Todos para maiúsculas")
-          .addOption("lowercase", "Todos para minúsculas")
+         d.addOption("none", "Não alterar")
+          .addOption("uppercase", "MAIÚSCULA")
+          .addOption("lowercase", "MINÚSCULA")
+          .addOption("title", "Primeira Em Maiúscula")
           .setValue(this.plugin.settings.normalizerCase)
           .onChange(async v => {
             this.plugin.settings.normalizerCase = v as any;
