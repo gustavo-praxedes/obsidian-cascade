@@ -3,6 +3,7 @@ import { registerCommands } from "./app/commands";
 import { EventRegistry } from "./app/events";
 import { StartupOrchestrator } from "./app/lifecycle";
 import { CalendarService } from "./calendar/calendar-service";
+import { CalendarView, CASCADE_CALENDAR_VIEW } from "./calendar/calendar-view";
 import { CascadeSettingTab } from "./config/settings-tab";
 import type { CascadeSettings } from "./config/schema";
 import { mergeSettings } from "./config/defaults";
@@ -27,6 +28,8 @@ export default class CascadePlugin extends Plugin {
   i18n!: I18n;
   private events?: EventRegistry;
   private checkboxMenu?: CheckboxMenu;
+  private calendarRibbonEl?: HTMLElement;
+  private toggleCalendarCallback?: () => void;
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -35,12 +38,12 @@ export default class CascadePlugin extends Plugin {
     const files = new FileService(this.app.vault);
     const repair = new RepairService(paths);
     const templates = new TemplateService(this.app.vault, this.settings);
-    const notes = new NoteService(this.app, paths, files, repair, templates);
-    const calendar = new CalendarService(this.settings, paths, files);
+    const notes = new NoteService(this.app, paths, files, repair, templates, this.settings);
+    const calendar = new CalendarService(this.settings, paths, files, this.app.vault);
     const recurrence = new RecurrenceService();
     const lock = new LockService();
     const migration = new MigrationService(this.settings, files, paths, recurrence, lock);
-    const normalizer = new NormalizerService(this.app.vault, this.settings);
+    const normalizer = new NormalizerService(this.app, this.settings);
     const frontmatter = new FrontmatterService(this.app, this.settings);
     const statuses = new StatusService(this.settings);
     const taskFamilies = new TaskFamilyService(this.app.vault, this.settings);
@@ -59,6 +62,19 @@ export default class CascadePlugin extends Plugin {
         new Notice(this.i18n.t("noticeOpenTodayFailed"));
       });
     });
+
+    this.toggleCalendarCallback = async () => {
+      const leaves = this.app.workspace.getLeavesOfType(CASCADE_CALENDAR_VIEW);
+      if (leaves.length) {
+        this.app.workspace.detachLeavesOfType(CASCADE_CALENDAR_VIEW);
+        return;
+      }
+      const leaf = this.app.workspace.getRightLeaf(false);
+      await leaf?.setViewState({ type: CASCADE_CALENDAR_VIEW, active: true });
+      if (leaf) this.app.workspace.revealLeaf(leaf);
+    };
+
+    this.updateCalendarRibbon();
 
     this.events = new EventRegistry(this.app.vault, normalizer, frontmatter, taskFamilies);
     this.events.register();
@@ -90,6 +106,16 @@ export default class CascadePlugin extends Plugin {
   onunload(): void {
     this.events?.unregister();
     this.checkboxMenu?.unregister();
+  }
+
+  updateCalendarRibbon(): void {
+    this.calendarRibbonEl?.remove();
+    this.calendarRibbonEl = undefined;
+    if (this.settings.calendarShowRibbonButton) {
+      this.calendarRibbonEl = this.addRibbonIcon("calendar-days", "Abrir Calendário", () => {
+        void this.toggleCalendarCallback?.();
+      });
+    }
   }
 
   async loadSettings(): Promise<void> {

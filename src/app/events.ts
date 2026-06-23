@@ -17,7 +17,7 @@ export class EventRegistry {
     this.refs.push(
       this.vault.on("create", (file) => {
         if (file instanceof TFile) {
-          void this.normalizer.normalizeFile(file);
+          void this.normalizer.normalizeFile(file, true);
           void this.frontmatter.initialize(file);
         }
       }),

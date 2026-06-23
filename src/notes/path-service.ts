@@ -85,12 +85,12 @@ export class PathService {
 
   yearFolder(date = new Date()): string {
     const info = this.dateInfo(date);
-    return normalizeVaultPath(renderFormat(this.settings.yearlyFolder, info));
+    return this.agendaFolder(renderFormat(this.settings.yearlyFolder, info));
   }
 
   monthFolder(date = new Date()): string {
     const info = this.dateInfo(date);
-    return normalizeVaultPath(renderFormat(this.settings.monthlyFolder, info));
+    return this.agendaFolder(renderFormat(this.settings.monthlyFolder, info));
   }
 
   annualPath(date = new Date()): string {
@@ -103,7 +103,7 @@ export class PathService {
 
   weeklyPath(date = new Date()): string {
     const base = this.weeklyBase(date);
-    const parent = normalizeVaultPath(renderFormat(this.settings.weeklyFolder, this.weeklyDateInfo(date)));
+    const parent = this.agendaFolder(renderFormat(this.settings.weeklyFolder, this.weeklyDateInfo(date)));
     return normalizeVaultPath(`${parent}/${base}.md`);
   }
 
@@ -112,7 +112,7 @@ export class PathService {
   }
 
   dailyPath(date = new Date()): string {
-    const parent = normalizeVaultPath(renderFormat(this.settings.dailyFolder, this.dateInfo(date)));
+    const parent = this.agendaFolder(renderFormat(this.settings.dailyFolder, this.dateInfo(date)));
     return normalizeVaultPath(`${parent}/${this.dailyBase(date)}.md`);
   }
 
@@ -223,12 +223,6 @@ export class PathService {
       "",
     ].join("\n");
   }
-
-  renderNoteTitle(title: string, date = new Date()): string {
-    const info = this.dateInfo(date);
-    return renderFormat(this.settings.noteFormat, info).replace("SLUG", titleSlug(title));
-  }
-
   isAnnualBase(path: string): boolean {
     return /^\d{4}00000000-\d{4}\.md$/i.test(lastSegment(path));
   }
@@ -263,6 +257,14 @@ export class PathService {
   private weeklyDateInfo(date: Date): DateInfo {
     const sameMonth = this.weekDates(date).find((current) => current.getFullYear() === date.getFullYear() && current.getMonth() === date.getMonth()) ?? date;
     return this.dateInfo(sameMonth);
+  }
+
+  private agendaFolder(folder: string): string {
+    const root = normalizeVaultPath(this.settings.agendaRoot);
+    const rendered = normalizeVaultPath(folder);
+    if (!root) return rendered;
+    if (!rendered) return root;
+    return normalizeVaultPath(`${root}/${rendered}`);
   }
 }
 

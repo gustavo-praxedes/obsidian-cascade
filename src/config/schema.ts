@@ -2,6 +2,11 @@ export type CascadeLanguage = "pt-BR" | "en-US" | "auto";
 export type StartupWaitCondition = "fixed" | "until-daily" | "until-vault-idle" | "combined";
 export type NormalizerCase = "none" | "uppercase" | "lowercase";
 
+export interface NormalizerReplacement {
+  from: string;
+  to: string;
+}
+
 export interface StatusDef {
   symbol: string;
   label: string;
@@ -22,12 +27,6 @@ export interface CascadeSettings {
   agendaRoot: string;
   openTodayOnStartup: boolean;
   
-  noteEnabled: boolean;
-  noteFormat: string;
-  noteTemplate: string;
-  noteFolder: string;
-
-  dailyEnabled: boolean;
   dailyFormat: string;
   dailyTemplate: string;
   dailyFolder: string;
@@ -57,6 +56,7 @@ export interface CascadeSettings {
   normalizeDelaySeconds: number;
   normalizerCase: NormalizerCase;
   normalizerAccents: boolean;
+  normalizerReplacements: NormalizerReplacement[];
   addTimestamp: boolean;
   normalizerScopes: string[];
   normalizerIgnored: string[];
@@ -75,6 +75,7 @@ export interface CascadeSettings {
 
   calendarFirstDayOfWeek: 0 | 1;
   calendarShowWeekNumber: boolean;
+  calendarShowRibbonButton: boolean;
   calendarOpenInNewLeaf: boolean;
   calendarConfirmCreate: boolean;
 

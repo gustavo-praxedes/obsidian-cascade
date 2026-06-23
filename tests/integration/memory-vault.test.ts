@@ -1,4 +1,4 @@
-﻿import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { TFile, TFolder } from "obsidian";
 import { DEFAULT_SETTINGS } from "../../src/config/defaults";
 import { NoteService } from "../../src/notes/note-service";
@@ -80,7 +80,7 @@ describe("memory vault integration", () => {
           }),
         },
       };
-      const notes = new NoteService(app as any, paths, files, repair, templates);
+      const notes = new NoteService(app as any, paths, files, repair, templates, DEFAULT_SETTINGS);
 
       await notes.openDate(new Date(2026, 5, 15));
 
@@ -119,7 +119,7 @@ describe("memory vault integration", () => {
           }),
         },
       };
-      const notes = new NoteService(app as any, paths, files, repair, templates);
+      const notes = new NoteService(app as any, paths, files, repair, templates, settings);
       const date = new Date(2026, 5, 16);
 
       await files.write(settings.recurringTasksPath, "- [ ] Estudo em familia \u{1F501} every week on Tuesday \u{1F4C5} 2026-06-16 \u23F0 19:00 #tasks\n");

@@ -35,12 +35,6 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
   agendaRoot: "",
   openTodayOnStartup: true,
   
-  noteEnabled: true,
-  noteFormat: "YYYYMMddHHmm-SLUG",
-  noteTemplate: "",
-  noteFolder: "",
-
-  dailyEnabled: true,
   dailyFormat: "YYYYMMdd0001-DDD",
   dailyTemplate: "",
   dailyFolder: "",
@@ -70,6 +64,7 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
   normalizeDelaySeconds: 10,
   normalizerCase: "none",
   normalizerAccents: false,
+  normalizerReplacements: [],
   addTimestamp: true,
   normalizerScopes: [],
   normalizerIgnored: [],
@@ -88,6 +83,7 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
 
   calendarFirstDayOfWeek: 0,
   calendarShowWeekNumber: false,
+  calendarShowRibbonButton: true,
   calendarOpenInNewLeaf: false,
   calendarConfirmCreate: true,
 

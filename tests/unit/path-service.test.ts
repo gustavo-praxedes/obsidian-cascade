@@ -24,6 +24,34 @@ describe("PathService", () => {
     expect(service.annualPath(date)).toBe("202600000000-2026.md");
   });
 
+  it("prefixes agenda folders with the agenda root", () => {
+    const service = new PathService({
+      ...DEFAULT_SETTINGS,
+      agendaRoot: "AGENDA",
+      dailyFolder: "DIA",
+      weeklyFolder: "SEMANA",
+      monthlyFolder: "MES",
+      yearlyFolder: "ANO",
+    });
+    const date = new Date(2026, 5, 15);
+
+    expect(service.dailyPath(date)).toBe("AGENDA/DIA/202606150001-SEGUNDA-FEIRA.md");
+    expect(service.weeklyPath(date)).toBe("AGENDA/SEMANA/202606150000-S-25.md");
+    expect(service.monthlyPath(date)).toBe("AGENDA/MES/202606000000-JUNHO.md");
+    expect(service.annualPath(date)).toBe("AGENDA/ANO/202600000000-2026.md");
+  });
+
+  it("always prefixes folders with the agenda root even when the folder already includes it", () => {
+    const service = new PathService({
+      ...DEFAULT_SETTINGS,
+      agendaRoot: "AGENDA",
+      dailyFolder: "AGENDA/DIA",
+    });
+    const date = new Date(2026, 5, 15);
+
+    expect(service.dailyPath(date)).toBe("AGENDA/AGENDA/DIA/202606150001-SEGUNDA-FEIRA.md");
+  });
+
   it("orders yearly, monthly, weekly and daily logs on the first day of the year", () => {
     const service = new PathService(DEFAULT_SETTINGS);
     const date = new Date(2026, 0, 1);

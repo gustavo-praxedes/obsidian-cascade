@@ -1,4 +1,4 @@
-import { TFile, normalizePath, type Vault } from "obsidian";
+import { TFile, normalizePath, type App } from "obsidian";
 import type { CascadeSettings } from "../config/schema";
 import { titleSlug } from "./path-service";
 
@@ -6,17 +6,23 @@ const RENAMES = new Set<string>();
 
 export class NormalizerService {
   constructor(
-    private readonly vault: Vault,
+    private readonly app: App,
     private readonly settings: CascadeSettings,
   ) {}
 
-  async normalizeFile(file: TFile): Promise<void> {
+  async normalizeFile(file: TFile, openAfterRename = false): Promise<void> {
     if (!this.settings.normalizerEnabled || RENAMES.has(file.path) || !this.inScope(file.path)) return;
     const folder = file.parent?.path ?? "";
     const extension = file.extension ? `.${file.extension}` : "";
     const timestamp = this.settings.addTimestamp ? timestampFromName(file.basename) : "";
     
     let slug = file.basename.replace(/^\d{12}-?/, "");
+
+    // Substituições customizadas (aplicadas antes de qualquer outra transformação)
+    for (const { from, to } of this.settings.normalizerReplacements) {
+      if (from) slug = slug.split(from).join(to);
+    }
+
     if (this.settings.normalizerCase !== "none" || !this.settings.normalizerAccents) {
       // Basic slugification if we are modifying case or accents
       slug = slug.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "");
@@ -33,7 +39,11 @@ export class NormalizerService {
     const unique = await this.uniquePath(target);
     RENAMES.add(file.path);
     try {
-      await this.vault.rename(file, unique);
+      await this.app.vault.rename(file, unique);
+      if (openAfterRename) {
+        const leaf = this.app.workspace.getLeaf(false);
+        await leaf.openFile(file);
+      }
     } finally {
       RENAMES.delete(file.path);
     }
@@ -43,8 +53,8 @@ export class NormalizerService {
     if (this.settings.normalizeDelaySeconds > 0) {
       await new Promise((resolve) => window.setTimeout(resolve, this.settings.normalizeDelaySeconds * 1000));
     }
-    for (const file of this.vault.getMarkdownFiles()) {
-      await this.normalizeFile(file);
+    for (const file of this.app.vault.getMarkdownFiles()) {
+      await this.normalizeFile(file, false);
     }
   }
 
@@ -55,12 +65,12 @@ export class NormalizerService {
   }
 
   private async uniquePath(path: string): Promise<string> {
-    if (!this.vault.getAbstractFileByPath(path)) return path;
+    if (!this.app.vault.getAbstractFileByPath(path)) return path;
     const dot = path.lastIndexOf(".");
     const base = dot === -1 ? path : path.slice(0, dot);
     const ext = dot === -1 ? "" : path.slice(dot);
     let index = 1;
-    while (this.vault.getAbstractFileByPath(`${base}-${String(index).padStart(2, "0")}${ext}`)) index += 1;
+    while (this.app.vault.getAbstractFileByPath(`${base}-${String(index).padStart(2, "0")}${ext}`)) index += 1;
     return `${base}-${String(index).padStart(2, "0")}${ext}`;
   }
 }

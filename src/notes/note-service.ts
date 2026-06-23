@@ -3,6 +3,7 @@ import { FileService } from "../vault/file-service";
 import { RepairService } from "../vault/repair-service";
 import { PathService } from "./path-service";
 import { TemplateService } from "./template-service";
+import type { CascadeSettings } from "../config/schema";
 
 export class NoteService {
   constructor(
@@ -11,34 +12,38 @@ export class NoteService {
     private readonly files: FileService,
     private readonly repair: RepairService,
     private readonly templates: TemplateService,
+    private readonly settings: CascadeSettings,
   ) {}
 
-  async createAnnual(date = new Date()): Promise<TFile> {
+  async createAnnual(date = new Date()): Promise<TFile | null> {
+    if (!this.settings.yearlyEnabled) return null;
     const path = this.paths.annualPath(date);
     const title = this.paths.annualBase(date);
-    const fallback = this.renderAnnual(date);
+    const fallback = this.paths.renderAnnualLog(date);
     const content = await this.templates.render("yearly", path, fallback, this.paths.dateInfo(date), title);
     const file = await this.files.ensureFile(path, content);
     await this.repairIfNeeded(path, "yearly", date);
     return file;
   }
 
-  async createMonthly(date = new Date()): Promise<TFile> {
+  async createMonthly(date = new Date()): Promise<TFile | null> {
     await this.createAnnual(date);
+    if (!this.settings.monthlyEnabled) return null;
     const path = this.paths.monthlyPath(date);
     const title = this.paths.monthlyBase(date);
-    const fallback = this.renderMonthly(date);
+    const fallback = this.paths.renderMonthlyLog(date);
     const content = await this.templates.render("monthly", path, fallback, this.paths.dateInfo(date), title);
     const file = await this.files.ensureFile(path, content);
     await this.repairIfNeeded(path, "monthly", date);
     return file;
   }
 
-  async createWeekly(date = new Date()): Promise<TFile> {
+  async createWeekly(date = new Date()): Promise<TFile | null> {
     await this.createMonthly(date);
+    if (!this.settings.weeklyEnabled) return null;
     const path = this.paths.weeklyPath(date);
     const title = this.paths.weeklyBase(date);
-    const fallback = this.renderWeekly(date);
+    const fallback = this.paths.renderWeeklyLog(date);
     const content = await this.templates.render("weekly", path, fallback, this.paths.dateInfo(date), title);
     const file = await this.files.ensureFile(path, content);
     await this.repairIfNeeded(path, "weekly", date);
@@ -46,11 +51,10 @@ export class NoteService {
   }
 
   async createDaily(date = new Date()): Promise<TFile> {
-    if (this.paths.weeklyEnabled()) await this.createWeekly(date);
-    else await this.createMonthly(date);
+    await this.createWeekly(date);
     const path = this.paths.dailyPath(date);
     const title = this.paths.dailyBase(date);
-    const fallback = this.renderDaily(date);
+    const fallback = this.paths.renderDailyLog(date);
     const content = await this.templates.render("daily", path, fallback, this.paths.dateInfo(date), title);
     const file = await this.files.ensureFile(path, content);
     await this.repairIfNeeded(path, "daily", date);
@@ -85,21 +89,5 @@ export class NoteService {
             ? this.repair.repairWeeklyLog(content, date)
             : this.repair.repairDailyLog(content, date);
     if (repaired !== content) await this.files.write(path, repaired);
-  }
-
-  private renderAnnual(date: Date): string {
-    return this.paths.renderAnnualLog(date);
-  }
-
-  private renderMonthly(date: Date): string {
-    return this.paths.renderMonthlyLog(date);
-  }
-
-  private renderWeekly(date: Date): string {
-    return this.paths.renderWeeklyLog(date);
-  }
-
-  private renderDaily(date: Date): string {
-    return this.paths.renderDailyLog(date);
   }
 }

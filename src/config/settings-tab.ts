@@ -96,19 +96,10 @@ export class CascadeSettingTab extends PluginSettingTab {
         );
       }
 
-      this.addToggleRefresh(section, "dailyEnabled", "Daily Enabled");
-      if (this.plugin.settings.dailyEnabled) {
-        this.addText(section, "Daily Format", "", "dailyFormat");
-        this.addText(section, "Daily Template", "", "dailyTemplate");
-        this.addText(section, "Daily Folder", "", "dailyFolder");
-      }
-
-      this.addToggleRefresh(section, "noteEnabled", "Note Enabled");
-      if (this.plugin.settings.noteEnabled) {
-        this.addText(section, "Note Format", "", "noteFormat");
-        this.addText(section, "Note Template", "", "noteTemplate");
-        this.addText(section, "Note Folder", "", "noteFolder");
-      }
+      new Setting(section).setName("Daily").setHeading();
+      this.addText(section, "Daily Format", "", "dailyFormat");
+      this.addText(section, "Daily Template", "", "dailyTemplate");
+      this.addText(section, "Daily Folder", "", "dailyFolder");
     });
 
     this.renderSection("Migração", false, (section) => {
@@ -156,6 +147,40 @@ export class CascadeSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
          })
       );
+
+      new Setting(section)
+        .setName("Substituições de caracteres")
+        .setDesc("Um par por linha no formato  de→para  (ex: \" \"→\"-\" ou \"ç\"→\"c\"). Use → para separar.");
+      const replacementsContainer = section.createDiv({ cls: "cascade-replacements" });
+      const renderReplacements = (): void => {
+        replacementsContainer.empty();
+        const list = this.plugin.settings.normalizerReplacements;
+        list.forEach((rep, index) => {
+          const row = replacementsContainer.createDiv({ cls: "cascade-replacement-row" });
+          const fromInput = row.createEl("input", { type: "text", attr: { placeholder: "de", value: rep.from, style: "width:80px" } });
+          row.createSpan({ text: " → " });
+          const toInput = row.createEl("input", { type: "text", attr: { placeholder: "para", value: rep.to, style: "width:80px" } });
+          const save = async (): Promise<void> => {
+            list[index] = { from: fromInput.value, to: toInput.value };
+            await this.plugin.saveSettings();
+          };
+          fromInput.addEventListener("change", save);
+          toInput.addEventListener("change", save);
+          const removeBtn = row.createEl("button", { text: "✕", attr: { style: "margin-left:4px" } });
+          removeBtn.addEventListener("click", async () => {
+            this.plugin.settings.normalizerReplacements.splice(index, 1);
+            await this.plugin.saveSettings();
+            renderReplacements();
+          });
+        });
+        const addBtn = replacementsContainer.createEl("button", { text: "+ Adicionar substituição", attr: { style: "margin-top:4px;display:block" } });
+        addBtn.addEventListener("click", async () => {
+          this.plugin.settings.normalizerReplacements.push({ from: "", to: "" });
+          await this.plugin.saveSettings();
+          renderReplacements();
+        });
+      };
+      renderReplacements();
     });
 
     this.renderSection("Tarefas", false, (section) => {
@@ -179,6 +204,16 @@ export class CascadeSettingTab extends PluginSettingTab {
     this.renderSection("Checkbox", false, (section) => this.renderStatusSettings(section));
 
     this.renderSection("Calendário", false, (section) => {
+      new Setting(section)
+        .setName("Exibir botão na barra lateral")
+        .setDesc("Mostra um ícone de calendário na ribbon do Obsidian para abrir/fechar o calendário.")
+        .addToggle(t =>
+          t.setValue(this.plugin.settings.calendarShowRibbonButton).onChange(async (value) => {
+            this.plugin.settings.calendarShowRibbonButton = value;
+            await this.plugin.saveSettings();
+            this.plugin.updateCalendarRibbon();
+          })
+        );
       new Setting(section).setName("First Day Of Week (0=Dom, 1=Seg)").addText(t => 
          t.setValue(String(this.plugin.settings.calendarFirstDayOfWeek)).onChange(async v => {
             this.plugin.settings.calendarFirstDayOfWeek = Number(v) as 0|1;
