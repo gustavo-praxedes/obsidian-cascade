@@ -63,37 +63,44 @@ export class CascadeSettingTab extends PluginSettingTab {
       this.addToggle(section, "openTodayOnStartup", "Open Today on Startup");
       this.addText(section, "Agenda Root", "", "agendaRoot");
 
-      this.addToggleRefresh(section, "yearlyEnabled", "Yearly Enabled");
-      if (this.plugin.settings.yearlyEnabled) {
-        this.addText(section, "Yearly Format", "", "yearlyFormat");
-        this.addText(section, "Yearly Template", "", "yearlyTemplate");
-        this.addText(section, "Yearly Folder", "", "yearlyFolder");
-        new Setting(section).setName("Operational Year Start Month (1 = Jan)").addText(t => 
-           t.setValue(String(this.plugin.settings.operationalYearStartMonth)).onChange(async v => {
-              this.plugin.settings.operationalYearStartMonth = Number(v);
-              await this.plugin.saveSettings();
-           })
-        );
-      }
+      this.renderSubSection(section, "Anual", (sub) => {
+        this.addToggleRefresh(sub, "yearlyEnabled", "Yearly Enabled");
+        if (this.plugin.settings.yearlyEnabled) {
+          this.addText(sub, "Yearly Format", "", "yearlyFormat");
+          this.addText(sub, "Yearly Template", "", "yearlyTemplate");
+          this.addText(sub, "Yearly Folder", "", "yearlyFolder");
+          new Setting(sub).setName("Operational Year Start Month (1 = Jan)").addText(t => 
+             t.setValue(String(this.plugin.settings.operationalYearStartMonth)).onChange(async v => {
+                this.plugin.settings.operationalYearStartMonth = Number(v);
+                await this.plugin.saveSettings();
+             })
+          );
+        }
+      });
 
-      this.addToggleRefresh(section, "monthlyEnabled", "Monthly Enabled");
-      if (this.plugin.settings.monthlyEnabled) {
-        this.addText(section, "Monthly Format", "", "monthlyFormat");
-        this.addText(section, "Monthly Template", "", "monthlyTemplate");
-        this.addText(section, "Monthly Folder", "", "monthlyFolder");
-      }
+      this.renderSubSection(section, "Mensal", (sub) => {
+        this.addToggleRefresh(sub, "monthlyEnabled", "Monthly Enabled");
+        if (this.plugin.settings.monthlyEnabled) {
+          this.addText(sub, "Monthly Format", "", "monthlyFormat");
+          this.addText(sub, "Monthly Template", "", "monthlyTemplate");
+          this.addText(sub, "Monthly Folder", "", "monthlyFolder");
+        }
+      });
 
-      this.addToggleRefresh(section, "weeklyEnabled", "Weekly Enabled");
-      if (this.plugin.settings.weeklyEnabled) {
-        this.addText(section, "Weekly Format", "", "weeklyFormat");
-        this.addText(section, "Weekly Template", "", "weeklyTemplate");
-        this.addText(section, "Weekly Folder", "", "weeklyFolder");
-      }
+      this.renderSubSection(section, "Semanal", (sub) => {
+        this.addToggleRefresh(sub, "weeklyEnabled", "Weekly Enabled");
+        if (this.plugin.settings.weeklyEnabled) {
+          this.addText(sub, "Weekly Format", "", "weeklyFormat");
+          this.addText(sub, "Weekly Template", "", "weeklyTemplate");
+          this.addText(sub, "Weekly Folder", "", "weeklyFolder");
+        }
+      });
 
-      new Setting(section).setName("Daily").setHeading();
-      this.addText(section, "Daily Format", "", "dailyFormat");
-      this.addText(section, "Daily Template", "", "dailyTemplate");
-      this.addText(section, "Daily Folder", "", "dailyFolder");
+      this.renderSubSection(section, "Diário", (sub) => {
+        this.addText(sub, "Daily Format", "", "dailyFormat");
+        this.addText(sub, "Daily Template", "", "dailyTemplate");
+        this.addText(sub, "Daily Folder", "", "dailyFolder");
+      });
     });
 
     this.renderSection("Migração", false, (section) => {
@@ -103,97 +110,105 @@ export class CascadeSettingTab extends PluginSettingTab {
 
     this.renderSection("Normalização", false, (section) => {
       this.addToggleRefresh(section, "normalizerEnabled", "Normalizer Enabled");
-      if (!this.plugin.settings.normalizerEnabled) {
-        this.addToggleRefresh(section, "runNormalizerOnStartup", "Run Normalizer on Startup");
-        if (!this.plugin.settings.runNormalizerOnStartup) {
-          new Setting(section).setName("Normalize Delay Seconds").addText(t => 
-             t.setValue(String(this.plugin.settings.normalizeDelaySeconds)).onChange(async v => {
-                this.plugin.settings.normalizeDelaySeconds = Number(v);
-                await this.plugin.saveSettings();
-             })
-          );
+
+      this.renderSubSection(section, "Configurações", (sub) => {
+        if (!this.plugin.settings.normalizerEnabled) {
+          this.addToggleRefresh(sub, "runNormalizerOnStartup", "Run Normalizer on Startup");
+          if (!this.plugin.settings.runNormalizerOnStartup) {
+            new Setting(sub).setName("Normalize Delay Seconds").addText(t => 
+               t.setValue(String(this.plugin.settings.normalizeDelaySeconds)).onChange(async v => {
+                  this.plugin.settings.normalizeDelaySeconds = Number(v);
+                  await this.plugin.saveSettings();
+               })
+            );
+          }
         }
-      }
 
-      new Setting(section).setName("Normalizer Case").addDropdown(d => 
-         d.addOption("none", "Não alterar")
-          .addOption("uppercase", "MAIÚSCULA")
-          .addOption("lowercase", "MINÚSCULA")
-          .addOption("title", "Primeira Em Maiúscula")
-          .setValue(this.plugin.settings.normalizerCase)
-          .onChange(async v => {
-            this.plugin.settings.normalizerCase = v as any;
-            await this.plugin.saveSettings();
-          })
-      );
-      this.addToggle(section, "normalizerAccents", "Normalizer Accents");
-      this.addToggle(section, "addTimestamp", "Add Timestamp");
+        new Setting(sub).setName("Normalizer Case").addDropdown(d => 
+           d.addOption("none", "Não alterar")
+            .addOption("uppercase", "MAIÚSCULA")
+            .addOption("lowercase", "MINÚSCULA")
+            .addOption("title", "Primeira Em Maiúscula")
+            .setValue(this.plugin.settings.normalizerCase)
+            .onChange(async v => {
+              this.plugin.settings.normalizerCase = v as any;
+              await this.plugin.saveSettings();
+            })
+        );
+        this.addToggle(sub, "normalizerAccents", "Normalizer Accents");
+        this.addToggle(sub, "addTimestamp", "Add Timestamp");
 
-      new Setting(section).setName("Normalizer Scopes").setDesc("Um caminho por linha.").addTextArea(t => 
-         t.setValue(this.plugin.settings.normalizerScopes.join("\n")).onChange(async v => {
-            this.plugin.settings.normalizerScopes = v.split("\n").map(s => s.trim()).filter(s => s);
-            await this.plugin.saveSettings();
-         })
-      );
+        new Setting(sub).setName("Normalizer Scopes").setDesc("Um caminho por linha.").addTextArea(t => 
+           t.setValue(this.plugin.settings.normalizerScopes.join("\n")).onChange(async v => {
+              this.plugin.settings.normalizerScopes = v.split("\n").map(s => s.trim()).filter(s => s);
+              await this.plugin.saveSettings();
+           })
+        );
 
-      new Setting(section).setName("Normalizer Ignored").setDesc("Um caminho por linha.").addTextArea(t => 
-         t.setValue(this.plugin.settings.normalizerIgnored.join("\n")).onChange(async v => {
-            this.plugin.settings.normalizerIgnored = v.split("\n").map(s => s.trim()).filter(s => s);
-            await this.plugin.saveSettings();
-         })
-      );
+        new Setting(sub).setName("Normalizer Ignored").setDesc("Um caminho por linha.").addTextArea(t => 
+           t.setValue(this.plugin.settings.normalizerIgnored.join("\n")).onChange(async v => {
+              this.plugin.settings.normalizerIgnored = v.split("\n").map(s => s.trim()).filter(s => s);
+              await this.plugin.saveSettings();
+           })
+        );
+      });
 
-      new Setting(section)
-        .setName("Substituições de caracteres")
-        .setDesc("Um par por linha no formato  de→para  (ex: \" \"→\"-\" ou \"ç\"→\"c\"). Use → para separar.");
-      const replacementsContainer = section.createDiv({ cls: "cascade-replacements" });
-      const renderReplacements = (): void => {
-        replacementsContainer.empty();
-        const list = this.plugin.settings.normalizerReplacements;
-        list.forEach((rep, index) => {
-          const row = replacementsContainer.createDiv({ cls: "cascade-replacement-row" });
-          const fromInput = row.createEl("input", { type: "text", attr: { placeholder: "de", value: rep.from, style: "width:80px" } });
-          row.createSpan({ text: " → " });
-          const toInput = row.createEl("input", { type: "text", attr: { placeholder: "para", value: rep.to, style: "width:80px" } });
-          const save = async (): Promise<void> => {
-            list[index] = { from: fromInput.value, to: toInput.value };
-            await this.plugin.saveSettings();
-          };
-          fromInput.addEventListener("change", save);
-          toInput.addEventListener("change", save);
-          const removeBtn = row.createEl("button", { text: "✕", attr: { style: "margin-left:4px" } });
-          removeBtn.addEventListener("click", async () => {
-            this.plugin.settings.normalizerReplacements.splice(index, 1);
+      this.renderSubSection(section, "Substituições", (sub) => {
+        new Setting(sub)
+          .setName("Substituições de caracteres")
+          .setDesc("Um par por linha no formato  de→para  (ex: \" \"→\"-\" ou \"ç\"→\"c\"). Use → para separar.");
+        const replacementsContainer = sub.createDiv({ cls: "cascade-replacements" });
+        const renderReplacements = (): void => {
+          replacementsContainer.empty();
+          const list = this.plugin.settings.normalizerReplacements;
+          list.forEach((rep, index) => {
+            const row = replacementsContainer.createDiv({ cls: "cascade-replacement-row" });
+            const fromInput = row.createEl("input", { type: "text", attr: { placeholder: "de", value: rep.from, style: "width:80px" } });
+            row.createSpan({ text: " → " });
+            const toInput = row.createEl("input", { type: "text", attr: { placeholder: "para", value: rep.to, style: "width:80px" } });
+            const save = async (): Promise<void> => {
+              list[index] = { from: fromInput.value, to: toInput.value };
+              await this.plugin.saveSettings();
+            };
+            fromInput.addEventListener("change", save);
+            toInput.addEventListener("change", save);
+            const removeBtn = row.createEl("button", { text: "✕", attr: { style: "margin-left:4px" } });
+            removeBtn.addEventListener("click", async () => {
+              this.plugin.settings.normalizerReplacements.splice(index, 1);
+              await this.plugin.saveSettings();
+              renderReplacements();
+            });
+          });
+          const addBtn = replacementsContainer.createEl("button", { text: "+ Adicionar substituição", attr: { style: "margin-top:4px;display:block" } });
+          addBtn.addEventListener("click", async () => {
+            this.plugin.settings.normalizerReplacements.push({ from: "", to: "" });
             await this.plugin.saveSettings();
             renderReplacements();
           });
-        });
-        const addBtn = replacementsContainer.createEl("button", { text: "+ Adicionar substituição", attr: { style: "margin-top:4px;display:block" } });
-        addBtn.addEventListener("click", async () => {
-          this.plugin.settings.normalizerReplacements.push({ from: "", to: "" });
-          await this.plugin.saveSettings();
-          renderReplacements();
-        });
-      };
-      renderReplacements();
+        };
+        renderReplacements();
+      });
     });
 
     this.renderSection("Tarefas", false, (section) => {
       this.addToggleRefresh(section, "migrationEnabled", "Migration Enabled");
-      if (this.plugin.settings.migrationEnabled) {
-         this.addText(section, "Recurring Tasks Path", "", "recurringTasksPath");
-         this.addToggle(section, "taskSetCreatedDate", "Set Created Date");
-         this.addToggle(section, "taskSetDoneDate", "Set Done Date");
-         this.addToggle(section, "cancelExpiredScheduled", "Cancel Expired Scheduled");
-         new Setting(section).setName("Previous Day Migration Lookback").addText(t => 
-            t.setValue(String(this.plugin.settings.previousDayMigrationLookbackDays)).onChange(async v => {
-               this.plugin.settings.previousDayMigrationLookbackDays = Number(v);
-               await this.plugin.saveSettings();
-            })
-         );
-         this.addToggle(section, "autoCompleteTaskFamilies", "Auto Complete Task Families");
-         this.addText(section, "Task Global Filter", "", "taskGlobalFilter");
-      }
+
+      this.renderSubSection(section, "Migração", (sub) => {
+        if (this.plugin.settings.migrationEnabled) {
+          this.addText(sub, "Recurring Tasks Path", "", "recurringTasksPath");
+          this.addToggle(sub, "taskSetCreatedDate", "Set Created Date");
+          this.addToggle(sub, "taskSetDoneDate", "Set Done Date");
+          this.addToggle(sub, "cancelExpiredScheduled", "Cancel Expired Scheduled");
+          new Setting(sub).setName("Previous Day Migration Lookback").addText(t => 
+             t.setValue(String(this.plugin.settings.previousDayMigrationLookbackDays)).onChange(async v => {
+                this.plugin.settings.previousDayMigrationLookbackDays = Number(v);
+                await this.plugin.saveSettings();
+             })
+          );
+          this.addToggle(sub, "autoCompleteTaskFamilies", "Auto Complete Task Families");
+          this.addText(sub, "Task Global Filter", "", "taskGlobalFilter");
+        }
+      });
     });
 
     this.renderSection("Checkbox", false, (section) => this.renderStatusSettings(section));
@@ -222,15 +237,18 @@ export class CascadeSettingTab extends PluginSettingTab {
 
     this.renderSection("Frontmatter", false, (section) => {
       this.addToggle(section, "frontmatterEnabled", "Enabled");
-      this.addText(section, "Created Key", "", "frontmatterCreatedKey");
-      this.addText(section, "Updated Key", "", "frontmatterUpdatedKey");
-      this.addText(section, "Date Format", "", "frontmatterDateFormat");
-      new Setting(section).setName("Ignored Paths").setDesc("Um caminho por linha.").addTextArea(t => 
-         t.setValue(this.plugin.settings.frontmatterIgnoredPaths.join("\n")).onChange(async v => {
-            this.plugin.settings.frontmatterIgnoredPaths = v.split("\n").map(s => s.trim()).filter(s => s);
-            await this.plugin.saveSettings();
-         })
-      );
+
+      this.renderSubSection(section, "Configurações", (sub) => {
+        this.addText(sub, "Created Key", "", "frontmatterCreatedKey");
+        this.addText(sub, "Updated Key", "", "frontmatterUpdatedKey");
+        this.addText(sub, "Date Format", "", "frontmatterDateFormat");
+        new Setting(sub).setName("Ignored Paths").setDesc("Um caminho por linha.").addTextArea(t => 
+           t.setValue(this.plugin.settings.frontmatterIgnoredPaths.join("\n")).onChange(async v => {
+              this.plugin.settings.frontmatterIgnoredPaths = v.split("\n").map(s => s.trim()).filter(s => s);
+              await this.plugin.saveSettings();
+           })
+        );
+      });
     });
 
     this.renderSection("Avançado", false, (section) => {
@@ -312,6 +330,21 @@ export class CascadeSettingTab extends PluginSettingTab {
 
   private renderSection(title: string, defaultOpen: boolean, render: (container: HTMLElement) => void): void {
     const details = this.containerEl.createEl("details", { cls: "cascade-settings-section" });
+    details.open = this.openSections!.has(title);
+    details.addEventListener("toggle", () => {
+      if (details.open) {
+        this.openSections!.add(title);
+      } else {
+        this.openSections!.delete(title);
+      }
+    });
+    details.createEl("summary", { text: title });
+    const content = details.createDiv({ cls: "cascade-settings-section__content" });
+    render(content);
+  }
+
+  private renderSubSection(parent: HTMLElement, title: string, render: (container: HTMLElement) => void): void {
+    const details = parent.createEl("details", { cls: "cascade-settings-section cascade-settings-subsection" });
     details.open = this.openSections!.has(title);
     details.addEventListener("toggle", () => {
       if (details.open) {

@@ -191,6 +191,14 @@
   padding-bottom: 6px;
 }
 
+.cascade-settings-subsection {
+  margin-left: 16px;
+  border-left: 2px solid var(--background-modifier-border);
+  padding-left: 12px;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
 .cascade-status-preview .task-list-item-checkbox,
 .setting-item-name .task-list-item-checkbox {
   margin-inline-end: 8px;
