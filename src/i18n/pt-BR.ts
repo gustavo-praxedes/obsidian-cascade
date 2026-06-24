@@ -139,4 +139,6 @@ export const ptBR = {
   openCalendar: "Abrir Calendario",
   normalizeAll: "Normalizar todos os nomes de arquivo",
   noticeNormalizeDone: "Cascade: normalizacao concluida.",
+  initFrontmatter: "Inicializar frontmatter para todos os arquivos",
+  noticeFrontmatterDone: "Cascade: frontmatter inicializado para {count} arquivos.",
 };

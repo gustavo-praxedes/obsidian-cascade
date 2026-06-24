@@ -93,7 +93,7 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
   frontmatterEnabled: true,
   frontmatterCreatedKey: "created",
   frontmatterUpdatedKey: "updated",
-  frontmatterDateFormat: "dd-MM-yyyy'T'HH:mm",
+  frontmatterDateFormat: "yyyy-MM-dd'T'HH:mm",
   frontmatterIgnoredPaths: [],
 
   loggingEnabled: false,

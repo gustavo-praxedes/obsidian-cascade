@@ -4,6 +4,7 @@ import { CalendarService } from "../calendar/calendar-service";
 import { MigrationService } from "../tasks/migration-service";
 import { NoteService } from "../notes/note-service";
 import { NormalizerService } from "../notes/normalizer-service";
+import { FrontmatterService } from "../notes/frontmatter-service";
 import type { I18n } from "../i18n";
 import type { CascadeSettings } from "../config/schema";
 import { ScheduledTaskService } from "../tasks/scheduled-task-service";
@@ -29,6 +30,7 @@ export function registerCommands(
   calendar: CalendarService,
   scheduledTasks: ScheduledTaskService,
   normalizer: NormalizerService,
+  frontmatter: FrontmatterService,
 ): void {
   plugin.addCommand({
     id: "open-today",
@@ -75,6 +77,15 @@ export function registerCommands(
     callback: async () => {
       await normalizer.normalizeAll();
       new Notice(i18n.t("noticeNormalizeDone"));
+    },
+  });
+
+  plugin.addCommand({
+    id: "init-frontmatter",
+    name: i18n.t("initFrontmatter"),
+    callback: async () => {
+      const count = await frontmatter.initializeAll();
+      new Notice(i18n.t("noticeFrontmatterDone").replace("{count}", String(count)));
     },
   });
 

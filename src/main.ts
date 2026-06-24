@@ -29,6 +29,7 @@ export default class CascadePlugin extends Plugin {
   log!: LogService;
   private events?: EventRegistry;
   private checkboxMenu?: CheckboxMenu;
+  private frontmatter?: FrontmatterService;
   private calendarRibbonEl?: HTMLElement;
   private toggleCalendarCallback?: () => void;
 
@@ -46,7 +47,7 @@ export default class CascadePlugin extends Plugin {
     const lock = new LockService();
     const migration = new MigrationService(this.settings, files, paths, recurrence, lock, this.log);
     const normalizer = new NormalizerService(this.app, this.settings, this.log);
-    const frontmatter = new FrontmatterService(this.app, this.settings);
+    this.frontmatter = new FrontmatterService(this.app, this.settings);
     const statuses = new StatusService(this.settings);
     const taskFamilies = new TaskFamilyService(this.app.vault, this.settings);
     const scheduledTasks = new ScheduledTaskService(this.app);
@@ -54,7 +55,7 @@ export default class CascadePlugin extends Plugin {
 
     this.i18n = new I18n(this.settings.language);
     this.addSettingTab(new CascadeSettingTab(this.app, this));
-    registerCommands(this, this.i18n, notes, migration, calendar, scheduledTasks, normalizer);
+    registerCommands(this, this.i18n, notes, migration, calendar, scheduledTasks, normalizer, this.frontmatter);
     this.addRibbonIcon("calendar-check", this.i18n.t("openToday"), () => {
       void (async () => {
         await notes.openToday();
@@ -69,7 +70,7 @@ export default class CascadePlugin extends Plugin {
 
     this.updateCalendarRibbon();
 
-    this.events = new EventRegistry(this.app.vault, normalizer, frontmatter, taskFamilies);
+    this.events = new EventRegistry(this.app.vault, normalizer, this.frontmatter, taskFamilies);
     this.events.register();
 
     this.checkboxMenu = new CheckboxMenu(this.app, statuses);
@@ -102,6 +103,7 @@ export default class CascadePlugin extends Plugin {
   onunload(): void {
     this.events?.unregister();
     this.checkboxMenu?.unregister();
+    this.frontmatter?.dispose();
   }
 
   updateCalendarRibbon(): void {

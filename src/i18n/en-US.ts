@@ -139,4 +139,6 @@ export const enUS = {
   openCalendar: "Open Calendar",
   normalizeAll: "Normalize all filenames",
   noticeNormalizeDone: "Cascade: normalization completed.",
+  initFrontmatter: "Initialize frontmatter for all files",
+  noticeFrontmatterDone: "Cascade: frontmatter initialized for {count} files.",
 };
