@@ -60,6 +60,7 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
 
   runMigrationOnStartup: true,
   runMigrationOnManualOpen: true,
+  startupDelaySeconds: 0,
 
   normalizerEnabled: false,
   runNormalizerOnStartup: false,

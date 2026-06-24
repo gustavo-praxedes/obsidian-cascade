@@ -210,6 +210,37 @@ export class CascadeSettingTab extends PluginSettingTab {
           );
           this.addToggle(sub, "autoCompleteTaskFamilies", "Auto Complete Task Families");
           this.addText(sub, "Task Global Filter", "", "taskGlobalFilter");
+
+          const delayPresets = [0, 5, 10, 30];
+          new Setting(sub)
+            .setName("Startup delay")
+            .setDesc("Seconds to wait before migration on startup")
+            .addDropdown((dd) => {
+              for (const sec of delayPresets) dd.addOption(String(sec), `${sec}s`);
+              dd.addOption("custom", "Custom...");
+              const current = this.plugin.settings.startupDelaySeconds;
+              const isPreset = delayPresets.includes(current);
+              dd.setValue(isPreset ? String(current) : "custom");
+              dd.onChange(async (v) => {
+                if (v === "custom") return;
+                this.plugin.settings.startupDelaySeconds = Number(v);
+                await this.plugin.saveSettings();
+                this.display();
+              });
+            });
+          if (!delayPresets.includes(this.plugin.settings.startupDelaySeconds)) {
+            new Setting(sub)
+              .setName("Custom delay (seconds)")
+              .addText((t) =>
+                t
+                  .setValue(String(this.plugin.settings.startupDelaySeconds))
+                  .setPlaceholder("0")
+                  .onChange(async (v) => {
+                    this.plugin.settings.startupDelaySeconds = Math.max(0, Number(v) || 0);
+                    await this.plugin.saveSettings();
+                  }),
+              );
+          }
         }
       });
     });

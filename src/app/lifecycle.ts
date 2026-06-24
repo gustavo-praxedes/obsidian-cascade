@@ -33,6 +33,7 @@ export class StartupOrchestrator {
     }
     
     this.log.startup.info("Startup begin");
+    await this.applyStartupDelay();
     await this.waitForStartupCondition();
     await this.openConfiguredNotes();
     if (this.settings.runMigrationOnStartup) await this.migration.run();
@@ -63,6 +64,13 @@ export class StartupOrchestrator {
   private async openNote(file: import("obsidian").TFile): Promise<void> {
     const leaf = this.workspace.getLeaf(false);
     await leaf.openFile(file);
+  }
+
+  private async applyStartupDelay(): Promise<void> {
+    const seconds = Math.max(0, Math.floor(this.settings.startupDelaySeconds));
+    if (!seconds) return;
+    this.log.startup.info(`Waiting ${seconds}s before startup`);
+    await sleep(seconds * 1000);
   }
 
   private async waitForStartupCondition(): Promise<void> {

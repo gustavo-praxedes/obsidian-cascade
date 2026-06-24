@@ -52,6 +52,7 @@ export interface CascadeSettings {
 
   runMigrationOnStartup: boolean;
   runMigrationOnManualOpen: boolean;
+  startupDelaySeconds: number;
 
   normalizerEnabled: boolean;
   runNormalizerOnStartup: boolean;
