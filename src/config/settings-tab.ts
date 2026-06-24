@@ -30,6 +30,7 @@ export class CascadeSettingTab extends PluginSettingTab {
   private searchInput: HTMLInputElement | null = null;
   private savedIndicator: HTMLElement | null = null;
   private savedTimer: ReturnType<typeof setTimeout> | null = null;
+  private navContainer: HTMLElement | null = null;
   private contentContainer: HTMLElement | null = null;
 
   constructor(
@@ -48,7 +49,8 @@ export class CascadeSettingTab extends PluginSettingTab {
     containerEl.empty();
 
     this.renderHeader(containerEl);
-    this.renderNav(containerEl);
+    this.navContainer = containerEl.createDiv({ cls: "cascade-settings-nav" });
+    this.renderNav();
     this.contentContainer = containerEl.createDiv({ cls: "cascade-settings-section-v2" });
     this.renderSection(this.activeSection);
   }
@@ -103,17 +105,18 @@ export class CascadeSettingTab extends PluginSettingTab {
      NAVIGATION
      ============================================ */
 
-  private renderNav(parent: HTMLElement): void {
-    const nav = parent.createDiv({ cls: "cascade-settings-nav" });
+  private renderNav(): void {
+    if (!this.navContainer) return;
+    this.navContainer.empty();
     for (const section of SECTIONS) {
-      const btn = nav.createEl("button", {
+      const btn = this.navContainer.createEl("button", {
         cls: `cascade-settings-nav__item${section.id === this.activeSection ? " is-active" : ""}`,
       });
       btn.createSpan({ cls: "cascade-settings-nav__icon", text: section.icon });
       btn.createSpan({ text: this.t(section.labelKey) });
       btn.addEventListener("click", () => {
         this.activeSection = section.id;
-        this.renderNav(parent);
+        this.renderNav();
         this.renderSection(section.id);
       });
     }
