@@ -636,4 +636,117 @@ describe("memory vault integration", () => {
     }
   });
 
+  it("skips annual when yearlyEnabled=false and seeds recurring into monthly", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        weeklyEnabled: false,
+        yearlyEnabled: false,
+        recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const today = new Date(2026, 5, 15);
+      await files.write(settings.recurringTasksPath, "- [ ] Tarefa recorrente \u{1F501} every week on Monday \u{1F4C5} 2026-06-15 #tasks\n");
+
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
+      await migration.run(today);
+
+      expect(vault.files.has(paths.annualPath(today))).toBe(false);
+      expect(vault.files.has(paths.monthlyPath(today))).toBe(true);
+      const monthly = await files.read(paths.monthlyPath(today));
+      expect(monthly).toContain("Tarefa recorrente");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("skips monthly when monthlyEnabled=false and seeds recurring into weekly", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        monthlyEnabled: false,
+        recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const today = new Date(2026, 5, 15);
+      await files.write(settings.recurringTasksPath, "- [ ] Tarefa semanal \u{1F501} every week on Monday \u{1F4C5} 2026-06-15 #tasks\n");
+
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
+      await migration.run(today);
+
+      expect(vault.files.has(paths.monthlyPath(today))).toBe(false);
+      expect(vault.files.has(paths.weeklyPath(today))).toBe(true);
+      const weekly = await files.read(paths.weeklyPath(today));
+      expect(weekly).toContain("Tarefa semanal");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("skips weekly when weeklyEnabled=false and migrates from monthly to daily", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        weeklyEnabled: false,
+        recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const today = new Date(2026, 5, 15);
+      await files.write(settings.recurringTasksPath, "- [ ] Tarefa diaria \u{1F501} every day \u{1F4C5} 2026-06-15 #tasks\n");
+
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
+      await migration.run(today);
+
+      const dailyPath = paths.dailyPath(today);
+      expect(vault.files.has(dailyPath)).toBe(true);
+      const daily = await files.read(dailyPath);
+      expect(daily).toContain("Tarefa diaria");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("skips annual and monthly when both disabled and seeds recurring into daily", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        yearlyEnabled: false,
+        monthlyEnabled: false,
+        weeklyEnabled: false,
+        recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const today = new Date(2026, 5, 15);
+      await files.write(settings.recurringTasksPath, "- [ ] Tarefa direta \u{1F501} every day \u{1F4C5} 2026-06-15 #tasks\n");
+
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
+      await migration.run(today);
+
+      expect(vault.files.has(paths.annualPath(today))).toBe(false);
+      expect(vault.files.has(paths.monthlyPath(today))).toBe(false);
+      const dailyPath = paths.dailyPath(today);
+      expect(vault.files.has(dailyPath)).toBe(true);
+      const daily = await files.read(dailyPath);
+      expect(daily).toContain("Tarefa direta");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
 });
