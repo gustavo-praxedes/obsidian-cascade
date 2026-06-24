@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractTasksWithSubtasks, isEphemeralTask, isForwardableTask, taskKey, taskLooseKey } from "../../src/tasks/task-parser";
+import { extractTasksWithSubtasks, isEphemeralTask, isOpenTask, isForwardableTask, taskKey, taskLooseKey } from "../../src/tasks/task-parser";
 import {
   markEphemeralCancelledTaskBlockInContent,
   markOpenChildrenOfMigratedBlocks,
@@ -7,6 +7,7 @@ import {
   normalizeRootTaskSpacing,
   prepareForwardableMigratedBlock,
   prepareForwardableMigratedBlockPreservingStatus,
+  prepareMigratedBlock,
   removeMigratedChildrenFromOpenBlocks,
   stripMarker,
 } from "../../src/tasks/task-serializer";
@@ -93,5 +94,53 @@ describe("forwardable/ephemeral markers", () => {
     const result = markEphemeralCancelledTaskBlockInContent(content, task);
     expect(result).toContain("- [-] Registrar ponto 🔚");
     expect(result).toContain("\t- [-] Subtarefa");
+  });
+});
+
+describe("isOpenTask accepts [/]", () => {
+  it("[ ] is an open task", () => {
+    const task = { line: "- [ ] Tarefa", block: "- [ ] Tarefa", status: " ", text: "Tarefa", indent: "" };
+    expect(isOpenTask(task)).toBe(true);
+  });
+
+  it("[/] is an open task", () => {
+    const task = { line: "- [/] Tarefa", block: "- [/] Tarefa", status: "/", text: "Tarefa", indent: "" };
+    expect(isOpenTask(task)).toBe(true);
+  });
+
+  it("[x] is not an open task", () => {
+    const task = { line: "- [x] Tarefa", block: "- [x] Tarefa", status: "x", text: "Tarefa", indent: "" };
+    expect(isOpenTask(task)).toBe(false);
+  });
+
+  it("[-] is not an open task", () => {
+    const task = { line: "- [-] Tarefa", block: "- [-] Tarefa", status: "-", text: "Tarefa", indent: "" };
+    expect(isOpenTask(task)).toBe(false);
+  });
+
+  it("extractTasksWithSubtasks extracts [/] tasks", () => {
+    const tasks = extractTasksWithSubtasks("- [ ] Aberta\n- [/] Em progresso\n- [x] Concluida");
+    expect(tasks).toHaveLength(2);
+    expect(tasks[0].status).toBe(" ");
+    expect(tasks[1].status).toBe("/");
+  });
+});
+
+describe("prepareMigratedBlock preserves [/] status", () => {
+  it("converts [ ] to [ ] at destination", () => {
+    const result = prepareMigratedBlock("- [ ] Tarefa aberta");
+    expect(result).toBe("- [ ] Tarefa aberta");
+  });
+
+  it("preserves [/] at destination", () => {
+    const result = prepareMigratedBlock("- [/] Tarefa em progresso");
+    expect(result).toBe("- [/] Tarefa em progresso");
+  });
+
+  it("preserves [/] with children", () => {
+    const block = ["- [/] Pai em progresso", "\t- [ ] Filha"].join("\n");
+    const result = prepareMigratedBlock(block);
+    expect(result).toContain("- [/] Pai em progresso");
+    expect(result).toContain("\t- [ ] Filha");
   });
 });

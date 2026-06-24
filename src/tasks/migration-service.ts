@@ -167,7 +167,7 @@ export class MigrationService {
     const weeklyMigratedTasks = this.paths.weeklyEnabled() ? extractSectionTasks(weekly, migratedHeadingPredicate).filter(isOpenTask) : [];
     const daySource = this.paths.weeklyEnabled() ? weekly : monthly;
     const dayTasks = extractSectionTasks(daySource, dayHeadingPredicate(info.dd)).filter(
-      (task) => (task.status === " " || task.status === ">") && isDueForDay(task.line, date),
+      (task) => (task.status === " " || task.status === "/" || task.status === ">") && isDueForDay(task.line, date),
     );
     const allTasks = [...rootTasks, ...migratedTasks, ...weeklyRootTasks, ...weeklyMigratedTasks, ...dayTasks];
     const ephemeral = allTasks.filter(isEphemeralTask);
@@ -184,18 +184,18 @@ export class MigrationService {
     if (unique.length) await this.files.write(dailyPath, insertAfterH1Compat(daily, unique));
     let updatedMonthly = monthly;
     let updatedWeekly = weekly;
-    for (const task of [...rootTasks, ...migratedTasks].filter((task) => task.status === " " && unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)))) {
+    for (const task of [...rootTasks, ...migratedTasks].filter((task) => (task.status === " " || task.status === "/") && unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)))) {
       updatedMonthly = markMigratedTaskBlockInContent(updatedMonthly, task);
     }
-    for (const task of [...rootTasks, ...migratedTasks].filter((task) => isEphemeralTask(task) && task.status === " ")) {
+    for (const task of [...rootTasks, ...migratedTasks].filter((task) => isEphemeralTask(task) && (task.status === " " || task.status === "/"))) {
       updatedMonthly = markEphemeralCancelledTaskBlockInContent(updatedMonthly, task);
     }
     for (const task of [...weeklyRootTasks, ...weeklyMigratedTasks, ...dayTasks].filter(
-      (task) => task.status === " " && unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)),
+      (task) => (task.status === " " || task.status === "/") && unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)),
     )) {
       updatedWeekly = markMigratedTaskBlockInContent(updatedWeekly, task);
     }
-    for (const task of [...weeklyRootTasks, ...weeklyMigratedTasks, ...dayTasks].filter((task) => isEphemeralTask(task) && task.status === " ")) {
+    for (const task of [...weeklyRootTasks, ...weeklyMigratedTasks, ...dayTasks].filter((task) => isEphemeralTask(task) && (task.status === " " || task.status === "/"))) {
       updatedWeekly = markEphemeralCancelledTaskBlockInContent(updatedWeekly, task);
     }
     await this.files.write(monthlyPath, updatedMonthly);

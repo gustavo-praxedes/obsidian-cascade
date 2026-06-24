@@ -62,9 +62,12 @@ export function prepareMigratedBlock(block: string): string {
   const lines = String(block || "").split(/\r?\n/);
   const prepared: string[] = [];
   let keepFollowingText = false;
+  let originalStatus = " ";
   for (const [index, line] of lines.entries()) {
     if (index === 0) {
-      prepared.push(toOpenTask(line));
+      const match = line.match(/^(\s*)-\s+\[([^\]])\]/);
+      originalStatus = match?.[2] ?? " ";
+      prepared.push(originalStatus === "/" ? withTaskStatus(line, "/") : toOpenTask(line));
       keepFollowingText = true;
       continue;
     }

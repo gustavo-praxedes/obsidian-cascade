@@ -93,7 +93,7 @@ export function isUsefulTask(task: TaskBlock): boolean {
 }
 
 export function isOpenTask(task: TaskBlock): boolean {
-  return task.status === " " && Boolean(task.text.trim());
+  return (task.status === " " || task.status === "/") && Boolean(task.text.trim());
 }
 
 export function taskKey(taskOrText: TaskBlock | string): string {
