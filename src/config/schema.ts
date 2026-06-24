@@ -1,5 +1,4 @@
 export type CascadeLanguage = "pt-BR" | "en-US" | "auto";
-export type StartupWaitCondition = "fixed" | "until-daily" | "until-vault-idle" | "combined";
 export type NormalizerCase = "none" | "uppercase" | "lowercase" | "title" | "slug" | "sentence" | "camelCase" | "PascalCase" | "snake_case";
 
 export interface NormalizerReplacement {
@@ -62,7 +61,6 @@ export interface CascadeSettings {
   normalizerReplacements: NormalizerReplacement[];
   addTimestamp: boolean;
   normalizerScopes: string[];
-  normalizerIgnored: string[];
 
   migrationEnabled: boolean;
   recurringTasksPath: string;
@@ -86,7 +84,6 @@ export interface CascadeSettings {
   frontmatterCreatedKey: string;
   frontmatterUpdatedKey: string;
   frontmatterDateFormat: string;
-  frontmatterIgnoredPaths: string[];
 
   loggingEnabled: boolean;
   loggingFolder: string;
@@ -97,10 +94,11 @@ export interface CascadeSettings {
   loggingNormalizer: boolean;
   loggingErrors: boolean;
 
-  // Legacy/Internal
-  startupWaitCondition: StartupWaitCondition;
-  startupWaitMaxSeconds: number;
-  startupVaultIdleSeconds: number;
+  ignoredPaths: string[];
   templatesFolder: string;
   folderTemplates: FolderTemplate[];
+
+  // Deprecated fields kept for backward compat migration
+  normalizerIgnored?: string[];
+  frontmatterIgnoredPaths?: string[];
 }

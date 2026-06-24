@@ -71,7 +71,7 @@ export const enUS = {
   normalizerAccents: "Normalizer Accents",
   addTimestamp: "Add Timestamp",
   normalizerScopes: "Normalizer Scopes",
-  normalizerIgnored: "Normalizer Ignored",
+  normalizerIgnored: "Ignored Paths",
   onePathPerLine: "One path per line.",
   normalizerCaseNone: "Don't change",
   normalizerCaseUppercase: "UPPERCASE",

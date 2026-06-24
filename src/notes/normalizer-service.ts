@@ -66,7 +66,10 @@ export class NormalizerService {
   }
 
   private inScope(path: string): boolean {
-    const ignored = this.settings.normalizerIgnored.some((prefix) => path.startsWith(prefix));
+    const ignored = this.settings.ignoredPaths.some((prefix) => {
+      const normalized = prefix.endsWith("/") ? prefix : `${prefix}/`;
+      return path.startsWith(normalized) || path === prefix;
+    });
     if (ignored) return false;
     return this.settings.normalizerScopes.length === 0 || this.settings.normalizerScopes.some((prefix) => path.startsWith(prefix));
   }

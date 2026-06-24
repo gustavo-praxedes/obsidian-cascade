@@ -118,7 +118,7 @@ describe("FrontmatterService", () => {
       app as any,
       makeSettings({
         frontmatterEnabled: true,
-        frontmatterIgnoredPaths: ["Templates/"],
+        ignoredPaths: ["Templates/"],
       }),
     );
     await service.initialize(file);

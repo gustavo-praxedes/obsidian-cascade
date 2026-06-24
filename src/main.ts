@@ -1,4 +1,4 @@
-import { Notice, Plugin, type EventRef } from "obsidian";
+import { Notice, Plugin } from "obsidian";
 import { registerCommands, toggleCalendar } from "./app/commands";
 import { EventRegistry } from "./app/events";
 import { StartupOrchestrator } from "./app/lifecycle";
@@ -77,7 +77,6 @@ export default class CascadePlugin extends Plugin {
     this.checkboxMenu.register();
 
     const startup = new StartupOrchestrator(this.app.vault, this.app.workspace, this.settings, paths, notes, migration, normalizer, this.log);
-    startup.registerIdleTracking((ref: EventRef) => this.registerEvent(ref));
     this.app.workspace.onLayoutReady(() => {
       void startup.run().catch((error) => {
         this.log.error(`Startup failed: ${error}`);

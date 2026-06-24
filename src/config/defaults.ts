@@ -70,7 +70,6 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
   normalizerReplacements: [],
   addTimestamp: true,
   normalizerScopes: [],
-  normalizerIgnored: [],
 
   migrationEnabled: true,
   recurringTasksPath: "",
@@ -94,7 +93,6 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
   frontmatterCreatedKey: "created",
   frontmatterUpdatedKey: "updated",
   frontmatterDateFormat: "yyyy-MM-dd'T'HH:mm",
-  frontmatterIgnoredPaths: [],
 
   loggingEnabled: false,
   loggingFolder: "",
@@ -105,25 +103,30 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
   loggingNormalizer: true,
   loggingErrors: true,
 
-  // Legacy/Internal
-  startupWaitCondition: "fixed",
-  startupWaitMaxSeconds: 30,
-  startupVaultIdleSeconds: 3,
+  ignoredPaths: [],
   templatesFolder: "",
   folderTemplates: [],
 };
 
 export function mergeSettings(data: Partial<CascadeSettings> | null | undefined): CascadeSettings {
+  const migratedIgnoredPaths = migrateIgnoredPaths(data);
   return {
     ...DEFAULT_SETTINGS,
     ...(data ?? {}),
     essentialStatuses: ESSENTIAL_STATUSES,
     customStatuses: mergeCustomStatuses(data?.customStatuses),
     normalizerScopes: data?.normalizerScopes ?? DEFAULT_SETTINGS.normalizerScopes,
-    normalizerIgnored: data?.normalizerIgnored ?? DEFAULT_SETTINGS.normalizerIgnored,
+    ignoredPaths: migratedIgnoredPaths,
     folderTemplates: data?.folderTemplates ?? [],
-    frontmatterIgnoredPaths: data?.frontmatterIgnoredPaths ?? [],
   };
+}
+
+function migrateIgnoredPaths(data: Partial<CascadeSettings> | null | undefined): string[] {
+  if (data?.ignoredPaths && data.ignoredPaths.length > 0) return data.ignoredPaths;
+  const legacy = new Set<string>();
+  for (const p of data?.normalizerIgnored ?? []) legacy.add(p);
+  for (const p of data?.frontmatterIgnoredPaths ?? []) legacy.add(p);
+  return [...legacy];
 }
 
 function mergeCustomStatuses(saved: StatusDef[] | undefined): StatusDef[] {

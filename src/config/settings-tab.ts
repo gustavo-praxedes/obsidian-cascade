@@ -383,10 +383,10 @@ export class CascadeSettingTab extends PluginSettingTab {
         );
       });
 
-      this.addSetting("normalizerIgnored", this.t("normalizerIgnored"), this.t("onePathPerLine"), (setting) => {
+      this.addSetting("ignoredPaths", this.t("normalizerIgnored"), this.t("onePathPerLine"), (setting) => {
         setting.addTextArea((t) =>
-          t.setValue(this.plugin.settings.normalizerIgnored.join("\n")).onChange(async (v) => {
-            this.plugin.settings.normalizerIgnored = v.split("\n").map((s) => s.trim()).filter((s) => s);
+          t.setValue(this.plugin.settings.ignoredPaths.join("\n")).onChange(async (v) => {
+            this.plugin.settings.ignoredPaths = v.split("\n").map((s) => s.trim()).filter((s) => s);
             await this.plugin.saveSettings();
             this.showSaved();
           }),
@@ -526,16 +526,6 @@ export class CascadeSettingTab extends PluginSettingTab {
             );
           },
         );
-
-        this.addSetting("frontmatterIgnoredPaths", this.t("frontmatterIgnoredPaths"), this.t("onePathPerLine"), (setting) => {
-          setting.addTextArea((t) =>
-            t.setValue(this.plugin.settings.frontmatterIgnoredPaths.join("\n")).onChange(async (v) => {
-              this.plugin.settings.frontmatterIgnoredPaths = v.split("\n").map((s) => s.trim()).filter((s) => s);
-              await this.plugin.saveSettings();
-              this.showSaved();
-            }),
-          );
-        });
       }
     });
   }

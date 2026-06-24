@@ -81,7 +81,7 @@ export class FrontmatterService {
   }
 
   private ignored(path: string): boolean {
-    return this.settings.frontmatterIgnoredPaths.some((prefix) => {
+    return this.settings.ignoredPaths.some((prefix) => {
       const normalized = prefix.endsWith("/") ? prefix : `${prefix}/`;
       return path.startsWith(normalized) || path === prefix;
     });

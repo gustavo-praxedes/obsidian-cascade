@@ -150,7 +150,7 @@ describe("NormalizerService", () => {
       normalizerEnabled: true,
       addTimestamp: false,
       normalizerCase: "lowercase",
-      normalizerIgnored: ["01-AGENDA/"],
+      ignoredPaths: ["01-AGENDA/"],
     }));
     await normalizer.normalizeFile(file);
     expect(app._getRenamedTo()).toBe("");

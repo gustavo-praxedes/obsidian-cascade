@@ -7,8 +7,6 @@ import { MigrationService } from "../tasks/migration-service";
 import { PathService } from "../notes/path-service";
 
 export class StartupOrchestrator {
-  private lastVaultChange = Date.now();
-
   constructor(
     private readonly vault: Vault,
     private readonly workspace: Workspace,
@@ -20,12 +18,6 @@ export class StartupOrchestrator {
     private readonly log: LogService,
   ) {}
 
-  registerIdleTracking(register: (eventRef: any) => void): void {
-    register(this.vault.on("create", () => (this.lastVaultChange = Date.now())));
-    register(this.vault.on("modify", () => (this.lastVaultChange = Date.now())));
-    register(this.vault.on("delete", () => (this.lastVaultChange = Date.now())));
-  }
-
   async run(manual = false): Promise<void> {
     if (!this.settings.startCascadeOnStartup && !manual) {
       this.log.startup.debug("Startup skipped (disabled)");
@@ -34,7 +26,6 @@ export class StartupOrchestrator {
     
     this.log.startup.info("Startup begin");
     await this.applyStartupDelay();
-    await this.waitForStartupCondition();
     await this.openConfiguredNotes();
     if (this.settings.runMigrationOnStartup) await this.migration.run();
     if (this.settings.runNormalizerOnStartup) await this.normalizer.normalizeAll();
@@ -71,23 +62,6 @@ export class StartupOrchestrator {
     if (!seconds) return;
     this.log.startup.info(`Waiting ${seconds}s before startup`);
     await sleep(seconds * 1000);
-  }
-
-  private async waitForStartupCondition(): Promise<void> {
-    const condition = this.settings.startupWaitCondition;
-    if (condition === "fixed") return;
-    const started = Date.now();
-    while (Date.now() - started < this.settings.startupWaitMaxSeconds * 1000) {
-      const today = new Date();
-      const dailyExists =
-        this.vault.getAbstractFileByPath(this.paths.dailyPath(today)) ||
-        this.vault.getMarkdownFiles().some((file) => file.basename.startsWith(this.paths.dailyPrefix(today)));
-      const idle = Date.now() - this.lastVaultChange >= this.settings.startupVaultIdleSeconds * 1000;
-      if (condition === "until-daily" && dailyExists) return;
-      if (condition === "until-vault-idle" && idle) return;
-      if (condition === "combined" && (dailyExists || idle)) return;
-      await sleep(250);
-    }
   }
 }
 
