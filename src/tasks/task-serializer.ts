@@ -5,6 +5,8 @@ const CARRYABLE_STATUSES = new Set([" ", "/"]);
 
 const RECURRENCE_RE = /\s*🔁\s*every\b.*?(?=\s+(?:🏁|➕|🛫|⏳|📅|❌|✅|#[\w/-]+|\^[\w-]+)|$)/iu;
 
+const TIME_MARKER_RE = /\s*⏰\s*\d{1,2}:\d{2}/u;
+
 export function toOpenTask(task: TaskBlock | string): string {
   const line = typeof task === "string" ? task : task.line;
   return withTaskStatus(line, " ");
@@ -12,6 +14,23 @@ export function toOpenTask(task: TaskBlock | string): string {
 
 export function withTaskStatus(line: string, status: string): string {
   return line.replace(/^(\s*)- \[[^\]]+\]/, `$1- [${status}]`);
+}
+
+export function hasTimeMarker(line: string): boolean {
+  return TIME_MARKER_RE.test(line);
+}
+
+export function extractTimeMarker(line: string): string {
+  const match = String(line).match(TIME_MARKER_RE);
+  return match ? match[0] : "";
+}
+
+export function preserveTimeMarker(original: string, processed: string): string {
+  if (hasTimeMarker(processed)) return processed;
+  const marker = extractTimeMarker(original);
+  if (!marker) return processed;
+  if (/#\w/u.test(processed)) return processed.replace(/\s(#\w)/u, `${marker} $1`);
+  return `${processed}${marker}`;
 }
 
 export function stripRecurrence(line: string): string {
@@ -27,7 +46,7 @@ export function withDueDate(line: string, date: Date): string {
 }
 
 export function prepareRecurringTask(task: TaskBlock, date: Date): string {
-  return stripMarker(withOccurrenceDate(stripRecurrence(toOpenTask(task)), date));
+  return preserveTimeMarker(task.line, stripMarker(withOccurrenceDate(stripRecurrence(toOpenTask(task)), date)));
 }
 
 export function uniqueNewTasks(existing: TaskBlock[], incoming: TaskBlock[]): TaskBlock[] {
@@ -88,7 +107,7 @@ export function prepareForwardableMigratedBlock(block: string): string {
   let keepFollowingText = false;
   for (const [index, line] of lines.entries()) {
     if (index === 0) {
-      prepared.push(stripMarker(toOpenTask(line)));
+      prepared.push(preserveTimeMarker(line, stripMarker(toOpenTask(line))));
       keepFollowingText = true;
       continue;
     }
@@ -109,7 +128,7 @@ export function prepareForwardableMigratedBlockPreservingStatus(block: string, o
   let keepFollowingText = false;
   for (const [index, line] of lines.entries()) {
     if (index === 0) {
-      prepared.push(stripMarker(withTaskStatus(line, originalStatus)));
+      prepared.push(preserveTimeMarker(line, stripMarker(withTaskStatus(line, originalStatus))));
       keepFollowingText = true;
       continue;
     }
