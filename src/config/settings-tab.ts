@@ -220,11 +220,12 @@ export class CascadeSettingTab extends PluginSettingTab {
           );
         },
       );
+
+      this.addTooltipedToggle("yearlyEnabled", this.t("yearlyEnabled"), this.t("tooltipYearlyEnabled"));
+      this.addTooltipedToggle("monthlyEnabled", this.t("monthlyEnabled"), this.t("tooltipMonthlyEnabled"));
     });
 
     this.renderCard(parent, "🎛️", this.t("sectionFeatures"), () => {
-      this.addTooltipedToggle("yearlyEnabled", this.t("yearlyEnabled"), this.t("tooltipYearlyEnabled"));
-      this.addTooltipedToggle("monthlyEnabled", this.t("monthlyEnabled"), this.t("tooltipMonthlyEnabled"));
       this.addTooltipedToggle("weeklyEnabled", this.t("weeklyEnabled"), this.t("tooltipWeeklyEnabled"));
       this.addTooltipedToggle("normalizerEnabled", this.t("normalizerEnabled"), this.t("tooltipNormalizerEnabled"));
       this.addTooltipedToggle("migrationEnabled", this.t("migrationEnabled"), this.t("tooltipMigrationEnabled"));
