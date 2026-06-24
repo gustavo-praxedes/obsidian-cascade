@@ -84,6 +84,15 @@ export interface CascadeSettings {
   frontmatterDateFormat: string;
   frontmatterIgnoredPaths: string[];
 
+  loggingEnabled: boolean;
+  loggingFolder: string;
+  loggingFilename: string;
+  loggingRetentionDays: number;
+  loggingStartup: boolean;
+  loggingMigration: boolean;
+  loggingNormalizer: boolean;
+  loggingErrors: boolean;
+
   // Legacy/Internal
   startupWaitCondition: StartupWaitCondition;
   startupWaitMaxSeconds: number;

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { TFile, TFolder } from "obsidian";
 import { DEFAULT_SETTINGS } from "../../src/config/defaults";
+import { LogService } from "../../src/logging/log-service";
 import { NoteService } from "../../src/notes/note-service";
 import { PathService } from "../../src/notes/path-service";
 import { TemplateService } from "../../src/notes/template-service";
@@ -162,7 +163,7 @@ describe("memory vault integration", () => {
 
       await files.write(settings.recurringTasksPath, "- [ ] Estudo em familia \u{1F501} every week on Tuesday \u{1F4C5} 2026-06-16 \u23F0 19:00 #tasks\n");
       await notes.openDate(date);
-      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
       await migration.run(date);
 
       expect(vault.files.has("PLANEJAMENTO/REGISTROS/2026/202600000000-2026.md")).toBe(true);
@@ -195,7 +196,7 @@ describe("memory vault integration", () => {
       await files.write(paths.monthlyPath(new Date(2026, 5, 15)), paths.renderMonthlyLog(new Date(2026, 5, 15)));
       await files.write(paths.dailyPath(new Date(2026, 5, 15)), paths.renderDailyLog(new Date(2026, 5, 15)));
 
-      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
       await migration.run(new Date(2026, 5, 15));
 
       const monthly = await files.read(paths.monthlyPath(new Date(2026, 5, 15)));
@@ -234,7 +235,7 @@ describe("memory vault integration", () => {
       await files.write(paths.dailyPath(today), paths.renderDailyLog(today));
       await files.write(paths.dailyPath(yesterday), `${paths.renderDailyLog(yesterday)}- [ ] Ligar para cliente\n- [ ] Compra agendada \u23F3 2026-06-14\n`);
 
-      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
       await migration.run(today);
 
       const todayText = await files.read(paths.dailyPath(today));
@@ -277,7 +278,7 @@ describe("memory vault integration", () => {
         ].join("\n"),
       );
 
-      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
       await migration.run(today);
 
       const todayText = await files.read(paths.dailyPath(today));
@@ -318,7 +319,7 @@ describe("memory vault integration", () => {
         ].join("\n"),
       );
 
-      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
       await migration.run(today);
 
       const todayText = await files.read(paths.dailyPath(today));
@@ -358,7 +359,7 @@ describe("memory vault integration", () => {
         ].join("\n"),
       );
 
-      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
       await migration.run(today);
 
       const todayText = await files.read(paths.dailyPath(today));
@@ -393,7 +394,7 @@ describe("memory vault integration", () => {
       await files.write(paths.dailyPath(new Date(2026, 5, 13)), `${paths.renderDailyLog(new Date(2026, 5, 13))}- [ ] Vem de anteontem\n`);
       await files.write(paths.dailyPath(new Date(2026, 5, 12)), `${paths.renderDailyLog(new Date(2026, 5, 12))}- [ ] Antiga demais\n`);
 
-      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
       await migration.run(today);
 
       const todayText = await files.read(paths.dailyPath(today));
@@ -429,7 +430,7 @@ describe("memory vault integration", () => {
         `${paths.renderDailyLog(yesterday)}- [ ] Sem data vem\n- [ ] Data antiga nao vem \u{1F4C5} 2026-06-01\n- [ ] Data de ontem vem \u{1F4C5} 2026-06-14\n`,
       );
 
-      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
       await migration.run(today);
 
       const todayText = await files.read(paths.dailyPath(today));
@@ -461,7 +462,7 @@ describe("memory vault integration", () => {
         `${paths.renderDailyLog(today)}- [ ] Futura nao fica \u23F3 2026-06-25\n- [ ] Passada nao fica \u23F3 2026-06-14\n- [ ] Vencimento antigo fica \u{1F4C5} 2026-06-01\n`,
       );
 
-      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
       await migration.run(today);
 
       const todayText = await files.read(paths.dailyPath(today));
@@ -500,7 +501,7 @@ describe("memory vault integration", () => {
       await files.write(paths.monthlyPath(today), monthly);
       await files.write(paths.dailyPath(today), paths.renderDailyLog(today));
 
-      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService());
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
       await migration.run(today);
 
       const todayText = await files.read(paths.dailyPath(today));

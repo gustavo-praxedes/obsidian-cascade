@@ -92,6 +92,15 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
   frontmatterDateFormat: "dd-MM-yyyy'T'HH:mm",
   frontmatterIgnoredPaths: [],
 
+  loggingEnabled: false,
+  loggingFolder: "",
+  loggingFilename: "cascade-log.md",
+  loggingRetentionDays: 30,
+  loggingStartup: true,
+  loggingMigration: true,
+  loggingNormalizer: true,
+  loggingErrors: true,
+
   // Legacy/Internal
   startupWaitCondition: "fixed",
   startupWaitMaxSeconds: 30,

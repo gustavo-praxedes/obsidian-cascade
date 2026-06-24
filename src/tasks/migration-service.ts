@@ -1,4 +1,5 @@
 import type { CascadeSettings } from "../config/schema";
+import type { LogService } from "../logging/log-service";
 import { addDays } from "../notes/path-service";
 import { FileService } from "../vault/file-service";
 import { LockService } from "../vault/lock-service";
@@ -39,11 +40,13 @@ export class MigrationService {
     private readonly paths: PathService,
     private readonly recurrence: RecurrenceService,
     private readonly lock: LockService,
+    private readonly log: LogService,
   ) {}
 
   async run(date = new Date()): Promise<void> {
     if (!this.settings.migrationEnabled) return;
     await this.lock.runExclusive(async () => {
+      this.log.migration.info("Migration begin");
       await this.ensureCascadeFiles(date);
       await this.seedAnnualFromRecurring(date);
       await this.ensureMonthly(date);
@@ -53,6 +56,7 @@ export class MigrationService {
       await this.migratePreviousDays(date);
       await this.removeFutureScheduledFromDaily(date);
       await this.normalizeLogSpacing(date);
+      this.log.migration.info("Migration complete");
     });
   }
 

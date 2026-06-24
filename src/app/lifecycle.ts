@@ -1,5 +1,6 @@
 import type { Vault } from "obsidian";
 import type { CascadeSettings } from "../config/schema";
+import type { LogService } from "../logging/log-service";
 import { NoteService } from "../notes/note-service";
 import { NormalizerService } from "../notes/normalizer-service";
 import { MigrationService } from "../tasks/migration-service";
@@ -15,6 +16,7 @@ export class StartupOrchestrator {
     private readonly notes: NoteService,
     private readonly migration: MigrationService,
     private readonly normalizer: NormalizerService,
+    private readonly log: LogService,
   ) {}
 
   registerIdleTracking(register: (eventRef: any) => void): void {
@@ -25,14 +27,17 @@ export class StartupOrchestrator {
 
   async run(manual = false): Promise<void> {
     if (!this.settings.startCascadeOnStartup && !manual) {
+      this.log.startup.debug("Startup skipped (disabled)");
       return;
     }
     
+    this.log.startup.info("Startup begin");
     await this.waitForStartupCondition();
     if (this.settings.openTodayOnStartup) await this.notes.openToday();
     else await this.notes.createDaily();
     if (this.settings.runMigrationOnStartup) await this.migration.run();
     if (this.settings.runNormalizerOnStartup) await this.normalizer.normalizeAll();
+    this.log.startup.info("Startup complete");
   }
 
   private async waitForStartupCondition(): Promise<void> {

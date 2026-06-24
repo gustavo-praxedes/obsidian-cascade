@@ -1,5 +1,6 @@
 import { TFile, normalizePath, type App } from "obsidian";
 import type { CascadeSettings } from "../config/schema";
+import type { LogService } from "../logging/log-service";
 
 const RENAMES = new Set<string>();
 
@@ -7,6 +8,7 @@ export class NormalizerService {
   constructor(
     private readonly app: App,
     private readonly settings: CascadeSettings,
+    private readonly log?: LogService,
   ) {}
 
   async normalizeFile(file: TFile, openAfterRename = false): Promise<void> {
@@ -39,23 +41,29 @@ export class NormalizerService {
     const unique = await this.uniquePath(target);
     RENAMES.add(file.path);
     try {
+      this.log?.normalizer.info(`Renaming: ${file.path} → ${unique}`);
       await this.app.vault.rename(file, unique);
       if (openAfterRename) {
         const leaf = this.app.workspace.getLeaf(false);
         await leaf.openFile(file);
       }
+    } catch (err) {
+      this.log?.normalizer.error(`Rename failed: ${file.path}: ${err}`);
+      throw err;
     } finally {
       RENAMES.delete(file.path);
     }
   }
 
   async normalizeAll(): Promise<void> {
+    this.log?.normalizer.info("Normalizing all files");
     if (this.settings.normalizeDelaySeconds > 0) {
       await new Promise((resolve) => window.setTimeout(resolve, this.settings.normalizeDelaySeconds * 1000));
     }
     for (const file of this.app.vault.getMarkdownFiles()) {
       await this.normalizeFile(file, false);
     }
+    this.log?.normalizer.info("Normalization complete");
   }
 
   private inScope(path: string): boolean {

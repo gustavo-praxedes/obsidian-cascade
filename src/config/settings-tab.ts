@@ -232,6 +232,82 @@ export class CascadeSettingTab extends PluginSettingTab {
          })
       );
     });
+
+    this.renderSection("Avançado", false, (section) => {
+      this.renderLoggingSubSection(section);
+    });
+  }
+
+  private renderLoggingSubSection(parent: HTMLElement): void {
+    const details = parent.createEl("details", { cls: "cascade-settings-section cascade-settings-subsection" });
+    details.open = this.openSections!.has("Log Interno");
+    details.addEventListener("toggle", () => {
+      if (details.open) {
+        this.openSections!.add("Log Interno");
+      } else {
+        this.openSections!.delete("Log Interno");
+      }
+    });
+    details.createEl("summary", { text: "Log Interno" });
+    const content = details.createDiv({ cls: "cascade-settings-section__content" });
+
+    new Setting(content)
+      .setName("Ativar log interno")
+      .setDesc("Gera arquivos .md com registros de operações do plugin.")
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.loggingEnabled).onChange(async (value) => {
+          this.plugin.settings.loggingEnabled = value;
+          await this.plugin.saveSettings();
+          this.display();
+        }),
+      );
+
+    if (this.plugin.settings.loggingEnabled) {
+      new Setting(content)
+        .setName("Pasta de logs")
+        .setDesc("Onde o arquivo de log será salvo. Deixe vazio para a raiz do vault.")
+        .addText((text) =>
+          text
+            .setPlaceholder("ex: Logs/Cascade")
+            .setValue(this.plugin.settings.loggingFolder)
+            .onChange(async (value) => {
+              this.plugin.settings.loggingFolder = value.trim();
+              await this.plugin.saveSettings();
+            }),
+        );
+
+      new Setting(content)
+        .setName("Nome do arquivo de log")
+        .setDesc("Nome do arquivo .md. Se incluir /, será tratado como caminho completo (ignora a pasta).")
+        .addText((text) =>
+          text
+            .setPlaceholder("cascade-log.md")
+            .setValue(this.plugin.settings.loggingFilename)
+            .onChange(async (value) => {
+              this.plugin.settings.loggingFilename = value.trim() || "cascade-log.md";
+              await this.plugin.saveSettings();
+            }),
+        );
+
+      new Setting(content)
+        .setName("Retenção de logs (dias)")
+        .setDesc("Apaga entradas antigas acima deste limite. 0 = sem limite.")
+        .addText((text) =>
+          text
+            .setValue(String(this.plugin.settings.loggingRetentionDays))
+            .onChange(async (value) => {
+              this.plugin.settings.loggingRetentionDays = Number(value) || 0;
+              await this.plugin.saveSettings();
+            }),
+        );
+
+      new Setting(content).setName("Categorias").setDesc("Escolha o que deseja registrar no log.").setHeading();
+
+      this.addToggle(content, "loggingStartup", "Startup");
+      this.addToggle(content, "loggingMigration", "Migração");
+      this.addToggle(content, "loggingNormalizer", "Normalização");
+      this.addToggle(content, "loggingErrors", "Erros");
+    }
   }
 
   private renderSection(title: string, defaultOpen: boolean, render: (container: HTMLElement) => void): void {
