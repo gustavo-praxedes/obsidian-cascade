@@ -54,7 +54,7 @@ export const ptBR = {
   yearlyFormat: "Formato anual",
   yearlyTemplate: "Modelo anual",
   yearlyFolder: "Pasta anual",
-  operationalYearStartMonth: "Mes inicial do ano operacional (1 = Jan)",
+
   monthlyEnabled: "Mensal ativado",
   monthlyFormat: "Formato mensal",
   monthlyTemplate: "Modelo mensal",

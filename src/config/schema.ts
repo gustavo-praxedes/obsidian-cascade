@@ -47,7 +47,7 @@ export interface CascadeSettings {
   yearlyFormat: string;
   yearlyTemplate: string;
   yearlyFolder: string;
-  operationalYearStartMonth: number;
+
 
   runMigrationOnStartup: boolean;
   runMigrationOnManualOpen: boolean;

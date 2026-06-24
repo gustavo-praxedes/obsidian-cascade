@@ -261,7 +261,7 @@ export class CascadeSettingTab extends PluginSettingTab {
         this.addText(parent, "yearlyFormat", "", "yearlyFormat");
         this.addText(parent, "yearlyTemplate", "", "yearlyTemplate");
         this.addText(parent, "yearlyFolder", "", "yearlyFolder");
-        this.addText(parent, "operationalYearStartMonth", "", "operationalYearStartMonth");
+
       }
     });
 

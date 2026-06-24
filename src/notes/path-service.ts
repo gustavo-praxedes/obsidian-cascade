@@ -74,12 +74,11 @@ export class PathService {
 
   operationalYear(date = new Date()): number {
     const info = this.dateInfo(date);
-    return info.month < this.settings.operationalYearStartMonth ? info.year - 1 : info.year;
+    return info.month < 1 ? info.year - 1 : info.year;
   }
 
   operationalMonths(year: number): number[] {
-    const start = this.settings.operationalYearStartMonth;
-    const startDate = new Date(year, start - 1, 1);
+    const startDate = new Date(year, 0, 1);
     return Array.from({ length: 12 }, (_, index) => new Date(startDate.getFullYear(), startDate.getMonth() + index, 1).getMonth() + 1);
   }
 

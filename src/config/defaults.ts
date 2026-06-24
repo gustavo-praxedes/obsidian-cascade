@@ -56,7 +56,7 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
   yearlyFormat: "YYYY00000000-YYYY",
   yearlyTemplate: "",
   yearlyFolder: "",
-  operationalYearStartMonth: 1,
+
 
   runMigrationOnStartup: true,
   runMigrationOnManualOpen: true,

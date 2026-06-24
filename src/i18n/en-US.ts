@@ -54,7 +54,7 @@ export const enUS = {
   yearlyFormat: "Yearly Format",
   yearlyTemplate: "Yearly Template",
   yearlyFolder: "Yearly Folder",
-  operationalYearStartMonth: "Operational Year Start Month (1 = Jan)",
+
   monthlyEnabled: "Monthly Enabled",
   monthlyFormat: "Monthly Format",
   monthlyTemplate: "Monthly Template",
