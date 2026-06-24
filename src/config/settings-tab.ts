@@ -235,6 +235,25 @@ export class CascadeSettingTab extends PluginSettingTab {
       }
     });
 
+    this.renderCard(parent, "📅", this.t("sectionAgenda"), () => {
+      this.renderOpenOnStartupDropdown(this.contentContainer!);
+
+      this.addTooltipedSetting(
+        "agendaRoot",
+        this.t("agendaRoot"),
+        this.t("tooltipAgendaRoot"),
+        (setting) => {
+          setting.addText((text) =>
+            text.setValue(this.plugin.settings.agendaRoot).onChange(async (value) => {
+              this.plugin.settings.agendaRoot = value.trim();
+              await this.plugin.saveSettings();
+              this.showSaved();
+            }),
+          );
+        },
+      );
+    });
+
     this.renderCard(parent, "🎛️", this.t("sectionFeatures"), () => {
       this.addTooltipedToggle("yearlyEnabled", this.t("yearlyEnabled"), this.t("tooltipYearlyEnabled"));
       this.addTooltipedToggle("monthlyEnabled", this.t("monthlyEnabled"), this.t("tooltipMonthlyEnabled"));
@@ -270,7 +289,6 @@ export class CascadeSettingTab extends PluginSettingTab {
 
     this.renderCard(parent, "📆", this.t("sectionAnnual"), () => {
       if (this.plugin.settings.yearlyEnabled) {
-        this.addToggle(parent, "openAnnualOnStartup", this.t("openOnStartup"));
         this.addText(parent, "yearlyFormat", "", "yearlyFormat");
         this.addText(parent, "yearlyTemplate", "", "yearlyTemplate");
         this.addText(parent, "yearlyFolder", "", "yearlyFolder");
@@ -280,7 +298,6 @@ export class CascadeSettingTab extends PluginSettingTab {
 
     this.renderCard(parent, "📅", this.t("sectionMonthly"), () => {
       if (this.plugin.settings.monthlyEnabled) {
-        this.addToggle(parent, "openMonthlyOnStartup", this.t("openOnStartup"));
         this.addText(parent, "monthlyFormat", "", "monthlyFormat");
         this.addText(parent, "monthlyTemplate", "", "monthlyTemplate");
         this.addText(parent, "monthlyFolder", "", "monthlyFolder");
@@ -289,7 +306,6 @@ export class CascadeSettingTab extends PluginSettingTab {
 
     this.renderCard(parent, "📋", this.t("sectionWeekly"), () => {
       if (this.plugin.settings.weeklyEnabled) {
-        this.addToggle(parent, "openWeeklyOnStartup", this.t("openOnStartup"));
         this.addText(parent, "weeklyFormat", "", "weeklyFormat");
         this.addText(parent, "weeklyTemplate", "", "weeklyTemplate");
         this.addText(parent, "weeklyFolder", "", "weeklyFolder");
@@ -297,7 +313,6 @@ export class CascadeSettingTab extends PluginSettingTab {
     });
 
     this.renderCard(parent, "📝", this.t("sectionDaily"), () => {
-      this.addToggle(parent, "openDailyOnStartup", this.t("openOnStartup"));
       this.addTooltipedSetting(
         "dailyFormat",
         this.t("dailyFormat"),
@@ -607,6 +622,65 @@ export class CascadeSettingTab extends PluginSettingTab {
         this.addToggle(parent, "loggingErrors", this.t("loggingErrors"));
       }
     });
+  }
+
+  /* ============================================
+     OPEN ON STARTUP DROPDOWN
+     ============================================ */
+
+  private renderOpenOnStartupDropdown(parent: HTMLElement): void {
+    const options = [
+      { key: "openAnnualOnStartup" as const, label: this.t("sectionAnnual"), enabled: this.plugin.settings.yearlyEnabled },
+      { key: "openMonthlyOnStartup" as const, label: this.t("sectionMonthly"), enabled: this.plugin.settings.monthlyEnabled },
+      { key: "openWeeklyOnStartup" as const, label: this.t("sectionWeekly"), enabled: this.plugin.settings.weeklyEnabled },
+      { key: "openDailyOnStartup" as const, label: this.t("sectionDaily"), enabled: true },
+    ];
+
+    const activeCount = options.filter((o) => this.plugin.settings[o.key]).length;
+    const summary = activeCount === 0 ? "None" : options.filter((o) => this.plugin.settings[o.key]).map((o) => o.label.replace(" ", "")).join(", ");
+
+    const setting = new Setting(parent).setName(this.t("openOnStartup")).setDesc(summary);
+    const triggerBtn = setting.infoEl.createEl("button", { cls: "button button-primary", text: `${activeCount}/${options.length}` });
+
+    let dropdown: HTMLElement | null = null;
+
+    const closeDropdown = (): void => {
+      if (dropdown) {
+        dropdown.remove();
+        dropdown = null;
+      }
+    };
+
+    const toggleDropdown = (e: MouseEvent): void => {
+      e.stopPropagation();
+      if (dropdown) {
+        closeDropdown();
+        return;
+      }
+      dropdown = setting.settingEl.createDiv({ cls: "cascade-checkbox-menu-widget" });
+      dropdown.style.position = "absolute";
+      dropdown.style.zIndex = "1000";
+
+      const ul = dropdown.createEl("ul");
+      for (const opt of options) {
+        const li = ul.createEl("li", { cls: "cascade-checkbox-menu-widget__item" });
+        const checkbox = li.createEl("input", { attr: { type: "checkbox" } });
+        checkbox.checked = this.plugin.settings[opt.key];
+        checkbox.disabled = !opt.enabled;
+        li.createSpan({ text: opt.label });
+        if (!opt.enabled) li.createSpan({ text: " (disabled)", attr: { style: "color:var(--text-faint);font-size:11px" } });
+        checkbox.addEventListener("change", async () => {
+          (this.plugin.settings as any)[opt.key] = checkbox.checked;
+          await this.plugin.saveSettings();
+          this.showSaved();
+          closeDropdown();
+          this.display();
+        });
+      }
+    };
+
+    triggerBtn.addEventListener("click", toggleDropdown);
+    document.addEventListener("click", closeDropdown);
   }
 
   /* ============================================
