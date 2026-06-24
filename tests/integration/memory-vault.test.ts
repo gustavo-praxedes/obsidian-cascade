@@ -85,10 +85,9 @@ describe("memory vault integration", () => {
 
       await notes.openDate(new Date(2026, 5, 15));
 
-      expect(vault.files.has("01-AGENDA/2026/202600000000-2026.md")).toBe(true);
-      expect(vault.files.has("01-AGENDA/2026/06/202606000000-JUNHO.md")).toBe(true);
+      expect(vault.files.has("202600000000-2026.md")).toBe(true);
+      expect(vault.files.has("202606000000-JUNHO.md")).toBe(true);
       const dailyPath = paths.dailyPath(new Date(2026, 5, 15));
-      expect(vault.files.has("01-AGENDA/2026/06/202606150000-S-25/202606150000-S-25.md")).toBe(true);
       expect(vault.files.has(dailyPath)).toBe(true);
       expect(vault.files.get(dailyPath)?.content).toContain("# 15 - SEGUNDA-FEIRA");
       expect(opened).toEqual([dailyPath]);
@@ -166,10 +165,9 @@ describe("memory vault integration", () => {
       const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
       await migration.run(date);
 
-      expect(vault.files.has("PLANEJAMENTO/REGISTROS/2026/202600000000-2026.md")).toBe(true);
-      expect(vault.files.has("PLANEJAMENTO/REGISTROS/2026/06/202606000000-JUNHO.md")).toBe(true);
+      expect(vault.files.has("PLANEJAMENTO/REGISTROS/202600000000-2026.md")).toBe(true);
+      expect(vault.files.has("PLANEJAMENTO/REGISTROS/202606000000-JUNHO.md")).toBe(true);
       expect(vault.files.has(paths.weeklyPath(date))).toBe(true);
-      expect(paths.weeklyPath(date)).toContain("/202606150000-S-25/202606150000-S-25.md");
       const dailyPath = paths.dailyPath(date);
       expect(vault.files.has(dailyPath)).toBe(true);
       expect(vault.files.get(dailyPath)?.content).toContain("Estudo em familia");
@@ -206,7 +204,7 @@ describe("memory vault integration", () => {
 
       expect(source).toBe("- [ ] Fazer designaÃ§Ãµes \u{1F501} every year on June 15th \u{1F4C5} 2026-06-15 \u23F0 19:30 #tasks\n");
       expect(annual).toContain("- [>] Fazer designaÃ§Ãµes \u{1F501} every year on June 15th \u{1F4C5} 2026-06-15 \u23F0 19:30 #tasks");
-      expect(monthly).toContain("## [[01-AGENDA/2026/06/202606150001-SEGUNDA-FEIRA|15 - SEGUNDA-FEIRA]]");
+      expect(monthly).toContain("## [[202606150001-SEGUNDA-FEIRA|15 - SEGUNDA-FEIRA]]");
       expect(monthly).toContain("- [>] Fazer designaÃ§Ãµes \u{1F4C5} 2026-06-15 \u23F0 19:30 #tasks");
       expect(monthly).not.toContain("#tasks\n## [[01-AGENDA/2026/06/202606160001-TER");
       expect(daily).toContain("- [ ] Fazer designaÃ§Ãµes \u{1F4C5} 2026-06-15 \u23F0 19:30 #tasks");
@@ -491,12 +489,12 @@ describe("memory vault integration", () => {
       await files.write(paths.annualPath(today), paths.renderAnnualLog(today));
       let monthly = paths.renderMonthlyLog(today);
       monthly = monthly.replace(
-        "## [[01-AGENDA/2026/06/202606010001-SEGUNDA-FEIRA|01 - SEGUNDA-FEIRA]]\n",
-        "## [[01-AGENDA/2026/06/202606010001-SEGUNDA-FEIRA|01 - SEGUNDA-FEIRA]]\n\n- [>] Tarefa antiga do dia 1\n",
+        "## [[202606010001-SEGUNDA-FEIRA|01 - SEGUNDA-FEIRA]]\n",
+        "## [[202606010001-SEGUNDA-FEIRA|01 - SEGUNDA-FEIRA]]\n\n- [>] Tarefa antiga do dia 1\n",
       );
       monthly = monthly.replace(
-        "## [[01-AGENDA/2026/06/202606150001-SEGUNDA-FEIRA|15 - SEGUNDA-FEIRA]]\n",
-        "## [[01-AGENDA/2026/06/202606150001-SEGUNDA-FEIRA|15 - SEGUNDA-FEIRA]]\n\n- [>] Tarefa atual jÃ¡ marcada no mensal\n",
+        "## [[202606150001-SEGUNDA-FEIRA|15 - SEGUNDA-FEIRA]]\n",
+        "## [[202606150001-SEGUNDA-FEIRA|15 - SEGUNDA-FEIRA]]\n\n- [>] Tarefa atual jÃ¡ marcada no mensal\n",
       );
       await files.write(paths.monthlyPath(today), monthly);
       await files.write(paths.dailyPath(today), paths.renderDailyLog(today));

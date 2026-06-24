@@ -129,6 +129,7 @@ export function reconcileTaskFamilies(content: string, previousContent = ""): st
   for (let index = tasks.length - 1; index >= 0; index -= 1) {
     const task = tasks[index];
     if (!COMPLETABLE.has(task.status)) continue;
+    if (skipParentCompletion.has(task.index)) continue;
     const children = directChildTasks(tasks, task);
     if (!children.length) continue;
 

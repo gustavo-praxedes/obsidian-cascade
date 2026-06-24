@@ -141,7 +141,7 @@ export function markEphemeralCancelledTaskBlockInContent(content: string, task: 
 }
 
 export function stripMarker(line: string): string {
-  return String(line).replace(/\s*🔚/gu, "").replace(/\s*🔜/gu, "").replace(/\s+/g, " ").trimEnd();
+  return String(line).replace(/\s*🔚/gu, "").replace(/\s*🔜/gu, "").replace(/ {2,}/g, " ").trimEnd();
 }
 
 export function markMigratedTaskBlockInContent(content: string, task: TaskBlock): string {

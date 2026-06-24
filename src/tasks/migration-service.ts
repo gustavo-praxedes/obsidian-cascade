@@ -223,11 +223,7 @@ export class MigrationService {
     const forwardable = toCarry.filter((task) => !isEphemeralTask(task));
     const unique = uniqueNewPreparedTasks(
       extractTasksWithSubtasks(todayContent),
-      forwardable.map((task) =>
-        task.status === "/"
-          ? prepareForwardableMigratedBlockPreservingStatus(task.block, task.status)
-          : prepareForwardableMigratedBlock(task.block),
-      ),
+      forwardable.map((task) => prepareForwardableMigratedBlock(task.block)),
     );
     let updatedPrevious = previousContent;
     if (unique.length) {
