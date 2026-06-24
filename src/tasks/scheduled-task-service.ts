@@ -41,7 +41,14 @@ export class ScheduledTaskService {
     if (!path) return;
     const file = this.app.vault.getAbstractFileByPath(path);
     if (!(file instanceof TFile)) return;
-    await this.app.workspace.getLeaf(false).openFile(file);
+    const leaf = this.app.workspace.getLeaf(false);
+    await leaf.openFile(file);
+    const view = leaf.view;
+    if ("editor" in view) {
+      const editor = (view as { editor: { setCursor: (pos: { line: number; ch: number }) => void; lineCount: () => number; getLine: (line: number) => string } }).editor;
+      const lastLine = editor.lineCount() - 1;
+      editor.setCursor({ line: lastLine, ch: editor.getLine(lastLine).length });
+    }
   }
 }
 
