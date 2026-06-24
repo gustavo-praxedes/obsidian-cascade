@@ -60,12 +60,12 @@ export class CascadeSettingTab extends PluginSettingTab {
     });
 
     this.renderSection("Agenda", false, (section) => {
-      this.addToggle(section, "openTodayOnStartup", "Open Today on Startup");
       this.addText(section, "Agenda Root", "", "agendaRoot");
 
       this.renderSubSection(section, "Anual", (sub) => {
         this.addToggleRefresh(sub, "yearlyEnabled", "Yearly Enabled");
         if (this.plugin.settings.yearlyEnabled) {
+          this.addToggle(sub, "openAnnualOnStartup", "Open on Startup");
           this.addText(sub, "Yearly Format", "", "yearlyFormat");
           this.addText(sub, "Yearly Template", "", "yearlyTemplate");
           this.addText(sub, "Yearly Folder", "", "yearlyFolder");
@@ -81,6 +81,7 @@ export class CascadeSettingTab extends PluginSettingTab {
       this.renderSubSection(section, "Mensal", (sub) => {
         this.addToggleRefresh(sub, "monthlyEnabled", "Monthly Enabled");
         if (this.plugin.settings.monthlyEnabled) {
+          this.addToggle(sub, "openMonthlyOnStartup", "Open on Startup");
           this.addText(sub, "Monthly Format", "", "monthlyFormat");
           this.addText(sub, "Monthly Template", "", "monthlyTemplate");
           this.addText(sub, "Monthly Folder", "", "monthlyFolder");
@@ -90,6 +91,7 @@ export class CascadeSettingTab extends PluginSettingTab {
       this.renderSubSection(section, "Semanal", (sub) => {
         this.addToggleRefresh(sub, "weeklyEnabled", "Weekly Enabled");
         if (this.plugin.settings.weeklyEnabled) {
+          this.addToggle(sub, "openWeeklyOnStartup", "Open on Startup");
           this.addText(sub, "Weekly Format", "", "weeklyFormat");
           this.addText(sub, "Weekly Template", "", "weeklyTemplate");
           this.addText(sub, "Weekly Folder", "", "weeklyFolder");
@@ -97,6 +99,7 @@ export class CascadeSettingTab extends PluginSettingTab {
       });
 
       this.renderSubSection(section, "Diário", (sub) => {
+        this.addToggle(sub, "openDailyOnStartup", "Open on Startup");
         this.addText(sub, "Daily Format", "", "dailyFormat");
         this.addText(sub, "Daily Template", "", "dailyTemplate");
         this.addText(sub, "Daily Folder", "", "dailyFolder");

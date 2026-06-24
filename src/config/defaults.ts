@@ -33,7 +33,10 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
   startCascadeOnStartup: true,
 
   agendaRoot: "",
-  openTodayOnStartup: true,
+  openAnnualOnStartup: false,
+  openMonthlyOnStartup: false,
+  openWeeklyOnStartup: false,
+  openDailyOnStartup: true,
   
   dailyFormat: "YYYYMMdd0001-DDD",
   dailyTemplate: "",

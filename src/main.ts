@@ -85,7 +85,7 @@ export default class CascadePlugin extends Plugin {
     this.checkboxMenu = new CheckboxMenu(this.app, statuses);
     this.checkboxMenu.register();
 
-    const startup = new StartupOrchestrator(this.app.vault, this.settings, paths, notes, migration, normalizer, this.log);
+    const startup = new StartupOrchestrator(this.app.vault, this.app.workspace, this.settings, paths, notes, migration, normalizer, this.log);
     startup.registerIdleTracking((ref: EventRef) => this.registerEvent(ref));
     this.app.workspace.onLayoutReady(() => {
       void startup.run().catch((error) => {

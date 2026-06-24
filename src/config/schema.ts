@@ -25,7 +25,10 @@ export interface CascadeSettings {
   startCascadeOnStartup: boolean;
 
   agendaRoot: string;
-  openTodayOnStartup: boolean;
+  openAnnualOnStartup: boolean;
+  openMonthlyOnStartup: boolean;
+  openWeeklyOnStartup: boolean;
+  openDailyOnStartup: boolean;
   
   dailyFormat: string;
   dailyTemplate: string;

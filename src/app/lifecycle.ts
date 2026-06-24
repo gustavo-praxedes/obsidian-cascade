@@ -1,4 +1,4 @@
-import type { Vault } from "obsidian";
+import type { Vault, Workspace } from "obsidian";
 import type { CascadeSettings } from "../config/schema";
 import type { LogService } from "../logging/log-service";
 import { NoteService } from "../notes/note-service";
@@ -11,6 +11,7 @@ export class StartupOrchestrator {
 
   constructor(
     private readonly vault: Vault,
+    private readonly workspace: Workspace,
     private readonly settings: CascadeSettings,
     private readonly paths: PathService,
     private readonly notes: NoteService,
@@ -33,11 +34,35 @@ export class StartupOrchestrator {
     
     this.log.startup.info("Startup begin");
     await this.waitForStartupCondition();
-    if (this.settings.openTodayOnStartup) await this.notes.openToday();
-    else await this.notes.createDaily();
+    await this.openConfiguredNotes();
     if (this.settings.runMigrationOnStartup) await this.migration.run();
     if (this.settings.runNormalizerOnStartup) await this.normalizer.normalizeAll();
     this.log.startup.info("Startup complete");
+  }
+
+  private async openConfiguredNotes(): Promise<void> {
+    const date = new Date();
+    if (this.settings.openAnnualOnStartup && this.settings.yearlyEnabled) {
+      const file = await this.notes.createAnnual(date);
+      if (file) await this.openNote(file);
+    }
+    if (this.settings.openMonthlyOnStartup && this.settings.monthlyEnabled) {
+      const file = await this.notes.createMonthly(date);
+      if (file) await this.openNote(file);
+    }
+    if (this.settings.openWeeklyOnStartup && this.settings.weeklyEnabled) {
+      const file = await this.notes.createWeekly(date);
+      if (file) await this.openNote(file);
+    }
+    if (this.settings.openDailyOnStartup) {
+      const file = await this.notes.createDaily(date);
+      if (file) await this.openNote(file);
+    }
+  }
+
+  private async openNote(file: import("obsidian").TFile): Promise<void> {
+    const leaf = this.workspace.getLeaf(false);
+    await leaf.openFile(file);
   }
 
   private async waitForStartupCondition(): Promise<void> {

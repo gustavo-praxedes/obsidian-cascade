@@ -4,7 +4,6 @@ export const enUS = {
   agendaRoot: "Agenda root folder",
   recurringTasksPath: "Recurring tasks file",
   weeklyStructure: "Weekly structure",
-  openTodayOnStartup: "Open today on startup",
   weeklyEnabled: "Use weekly notes",
   runMigrationOnStartup: "Run migration on startup",
   runNormalizerOnStartup: "Run normalizer on startup",

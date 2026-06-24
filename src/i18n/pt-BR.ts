@@ -4,7 +4,6 @@ export const ptBR = {
   agendaRoot: "Pasta raiz da agenda",
   recurringTasksPath: "Arquivo de tarefas recorrentes",
   weeklyStructure: "Estrutura semanal",
-  openTodayOnStartup: "Abrir hoje ao iniciar",
   weeklyEnabled: "Usar notas semanais",
   runMigrationOnStartup: "Migrar tarefas ao iniciar",
   runNormalizerOnStartup: "Normalizar arquivos ao iniciar",
