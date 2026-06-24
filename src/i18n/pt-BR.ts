@@ -77,6 +77,11 @@ export const ptBR = {
   normalizerCaseUppercase: "MAIUSCULA",
   normalizerCaseLowercase: "minuscula",
   normalizerCaseTitle: "Primeira Em Maiuscula",
+  normalizerCaseSlug: "Slug (minusculo, hifens)",
+  normalizerCaseSentence: "Frase",
+  normalizerCaseCamel: "camelCase",
+  normalizerCasePascal: "PascalCase",
+  normalizerCaseSnake: "snake_case",
   replacementsTitle: "Substituicoes de caracteres",
   replacementsDesc: "Um par por linha no formato de\u2192para (ex: \" \"\u2192\"-\" ou \"\u00e7\"\u2192\"c\"). Use \u2192 para separar.",
   placeholderFrom: "de",
@@ -132,4 +137,6 @@ export const ptBR = {
   symbolExists: "Esse simbolo ja existe.",
   errorStartingCascade: "Erro ao iniciar o Cascade",
   openCalendar: "Abrir Calendario",
+  normalizeAll: "Normalizar todos os nomes de arquivo",
+  noticeNormalizeDone: "Cascade: normalizacao concluida.",
 };

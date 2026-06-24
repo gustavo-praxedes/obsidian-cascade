@@ -1,6 +1,6 @@
 export type CascadeLanguage = "pt-BR" | "en-US" | "auto";
 export type StartupWaitCondition = "fixed" | "until-daily" | "until-vault-idle" | "combined";
-export type NormalizerCase = "none" | "uppercase" | "lowercase" | "title";
+export type NormalizerCase = "none" | "uppercase" | "lowercase" | "title" | "slug" | "sentence" | "camelCase" | "PascalCase" | "snake_case";
 
 export interface NormalizerReplacement {
   from: string;

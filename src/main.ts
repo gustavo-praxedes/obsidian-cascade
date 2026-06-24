@@ -54,7 +54,7 @@ export default class CascadePlugin extends Plugin {
 
     this.i18n = new I18n(this.settings.language);
     this.addSettingTab(new CascadeSettingTab(this.app, this));
-    registerCommands(this, this.i18n, notes, migration, calendar, scheduledTasks);
+    registerCommands(this, this.i18n, notes, migration, calendar, scheduledTasks, normalizer);
     this.addRibbonIcon("calendar-check", this.i18n.t("openToday"), () => {
       void (async () => {
         await notes.openToday();

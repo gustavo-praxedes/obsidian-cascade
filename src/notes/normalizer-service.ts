@@ -16,24 +16,20 @@ export class NormalizerService {
     const folder = file.parent?.path ?? "";
     const extension = file.extension ? `.${file.extension}` : "";
     const timestamp = this.settings.addTimestamp ? timestampFromName(file.basename) : "";
-    
+
     let slug = file.basename.replace(/^\d{12}-?/, "");
 
-    // Substituições customizadas (aplicadas antes de qualquer outra transformação)
     for (const { from, to } of this.settings.normalizerReplacements) {
       if (from) slug = slug.split(from).join(to);
     }
 
     if (this.settings.normalizerCase !== "none" || !this.settings.normalizerAccents) {
-      // Basic slugification if we are modifying case or accents
-      slug = slug.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "");
+      slug = slugify(slug);
     }
     if (!this.settings.normalizerAccents) {
-      slug = slug.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+      slug = stripAccents(slug);
     }
-    if (this.settings.normalizerCase === "uppercase") slug = slug.toUpperCase();
-    else if (this.settings.normalizerCase === "lowercase") slug = slug.toLowerCase();
-    else if (this.settings.normalizerCase === "title") slug = titleCaseSlug(slug);
+    slug = applyCase(slug, this.settings.normalizerCase);
 
     const basename = `${timestamp}${timestamp && slug ? "-" : ""}${slug}`;
     const target = normalizePath(`${folder}/${basename}${extension}`);
@@ -44,8 +40,11 @@ export class NormalizerService {
       this.log?.normalizer.info(`Renaming: ${file.path} → ${unique}`);
       await this.app.vault.rename(file, unique);
       if (openAfterRename) {
-        const leaf = this.app.workspace.getLeaf(false);
-        await leaf.openFile(file);
+        const updated = this.app.vault.getAbstractFileByPath(unique);
+        if (updated instanceof TFile) {
+          const leaf = this.app.workspace.getLeaf(false);
+          await leaf.openFile(updated);
+        }
       }
     } catch (err) {
       this.log?.normalizer.error(`Rename failed: ${file.path}: ${err}`);
@@ -78,9 +77,67 @@ export class NormalizerService {
     const base = dot === -1 ? path : path.slice(0, dot);
     const ext = dot === -1 ? "" : path.slice(dot);
     let index = 1;
-    while (this.app.vault.getAbstractFileByPath(`${base}-${String(index).padStart(2, "0")}${ext}`)) index += 1;
+    while (index < 1000 && this.app.vault.getAbstractFileByPath(`${base}-${String(index).padStart(2, "0")}${ext}`)) index += 1;
     return `${base}-${String(index).padStart(2, "0")}${ext}`;
   }
+}
+
+export function slugify(value: string): string {
+  return value
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function stripAccents(value: string): string {
+  return value.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+}
+
+export function applyCase(value: string, mode: string): string {
+  switch (mode) {
+    case "uppercase":
+      return value.toUpperCase();
+    case "lowercase":
+      return value.toLowerCase();
+    case "title":
+      return titleCaseSlug(value);
+    case "slug":
+      return slugify(stripAccents(value)).toLowerCase();
+    case "sentence":
+      return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    case "camelCase": {
+      const words = splitWords(value);
+      return words.map((w, i) => (i === 0 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())).join("");
+    }
+    case "PascalCase": {
+      const words = splitWords(value);
+      return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join("");
+    }
+    case "snake_case":
+      return splitWords(value)
+        .map((w) => w.toLowerCase())
+        .join("_");
+    default:
+      return value;
+  }
+}
+
+function splitWords(value: string): string[] {
+  return value
+    .replace(/[\s_-]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length > 0);
+}
+
+function titleCaseSlug(value: string): string {
+  return value
+    .split("-")
+    .map((part) => {
+      const [first = "", ...rest] = [...part.toLowerCase()];
+      return `${first.toUpperCase()}${rest.join("")}`;
+    })
+    .join("-");
 }
 
 function timestampFromName(name: string): string {
@@ -92,14 +149,4 @@ function timestampFromName(name: string): string {
 
 function pad(value: number): string {
   return String(value).padStart(2, "0");
-}
-
-function titleCaseSlug(value: string): string {
-  return value
-    .split("-")
-    .map((part) => {
-      const [first = "", ...rest] = [...part.toLocaleLowerCase("pt-BR")];
-      return `${first.toLocaleUpperCase("pt-BR")}${rest.join("")}`;
-    })
-    .join("-");
 }

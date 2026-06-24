@@ -3,6 +3,7 @@ import { CalendarView, CASCADE_CALENDAR_VIEW } from "../calendar/calendar-view";
 import { CalendarService } from "../calendar/calendar-service";
 import { MigrationService } from "../tasks/migration-service";
 import { NoteService } from "../notes/note-service";
+import { NormalizerService } from "../notes/normalizer-service";
 import type { I18n } from "../i18n";
 import type { CascadeSettings } from "../config/schema";
 import { ScheduledTaskService } from "../tasks/scheduled-task-service";
@@ -27,6 +28,7 @@ export function registerCommands(
   migration: MigrationService,
   calendar: CalendarService,
   scheduledTasks: ScheduledTaskService,
+  normalizer: NormalizerService,
 ): void {
   plugin.addCommand({
     id: "open-today",
@@ -64,6 +66,15 @@ export function registerCommands(
     name: i18n.t("copyScheduledTask"),
     callback: async () => {
       await scheduledTasks.copyFromActiveFile();
+    },
+  });
+
+  plugin.addCommand({
+    id: "normalize-all",
+    name: i18n.t("normalizeAll"),
+    callback: async () => {
+      await normalizer.normalizeAll();
+      new Notice(i18n.t("noticeNormalizeDone"));
     },
   });
 

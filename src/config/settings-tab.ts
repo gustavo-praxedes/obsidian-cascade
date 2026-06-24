@@ -119,7 +119,7 @@ export class CascadeSettingTab extends PluginSettingTab {
       this.addToggleRefresh(section, "normalizerEnabled", this.t("normalizerEnabled"));
 
       this.renderSubSection(section, this.t("sectionSettings"), (sub) => {
-        if (!this.plugin.settings.normalizerEnabled) {
+        if (this.plugin.settings.normalizerEnabled) {
           this.addToggleRefresh(sub, "runNormalizerOnStartup", this.t("runNormalizerOnStartup"));
           if (!this.plugin.settings.runNormalizerOnStartup) {
             new Setting(sub).setName(this.t("normalizeDelaySeconds")).addText(t => 
@@ -136,6 +136,11 @@ export class CascadeSettingTab extends PluginSettingTab {
             .addOption("uppercase", this.t("normalizerCaseUppercase"))
             .addOption("lowercase", this.t("normalizerCaseLowercase"))
             .addOption("title", this.t("normalizerCaseTitle"))
+            .addOption("slug", this.t("normalizerCaseSlug"))
+            .addOption("sentence", this.t("normalizerCaseSentence"))
+            .addOption("camelCase", this.t("normalizerCaseCamel"))
+            .addOption("PascalCase", this.t("normalizerCasePascal"))
+            .addOption("snake_case", this.t("normalizerCaseSnake"))
             .setValue(this.plugin.settings.normalizerCase)
             .onChange(async v => {
               this.plugin.settings.normalizerCase = v as any;

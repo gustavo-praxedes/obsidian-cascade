@@ -77,6 +77,11 @@ export const enUS = {
   normalizerCaseUppercase: "UPPERCASE",
   normalizerCaseLowercase: "lowercase",
   normalizerCaseTitle: "Title Case",
+  normalizerCaseSlug: "Slug (lowercase, hyphens)",
+  normalizerCaseSentence: "Sentence case",
+  normalizerCaseCamel: "camelCase",
+  normalizerCasePascal: "PascalCase",
+  normalizerCaseSnake: "snake_case",
   replacementsTitle: "Character replacements",
   replacementsDesc: "One pair per line in format from\u2192to (e.g. \" \"\u2192\"-\" or \"\u00e7\"\u2192\"c\"). Use \u2192 to separate.",
   placeholderFrom: "from",
@@ -132,4 +137,6 @@ export const enUS = {
   symbolExists: "This symbol already exists.",
   errorStartingCascade: "Error starting Cascade",
   openCalendar: "Open Calendar",
+  normalizeAll: "Normalize all filenames",
+  noticeNormalizeDone: "Cascade: normalization completed.",
 };
