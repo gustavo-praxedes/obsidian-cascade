@@ -11,6 +11,10 @@ export class CascadeSettingTab extends PluginSettingTab {
     super(app, plugin);
   }
 
+  private t(key: string): string {
+    return this.plugin.i18n.t(key as any);
+  }
+
   display(): void {
     if (!this.openSections) {
       this.openSections = new Set();
@@ -18,11 +22,11 @@ export class CascadeSettingTab extends PluginSettingTab {
 
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Cascade Settings" });
+    containerEl.createEl("h2", { text: this.t("settingsTitle") });
 
-    this.renderSection("Geral", true, (section) => {
+    this.renderSection(this.t("sectionGeneral"), true, (section) => {
       new Setting(section)
-        .setName("Language")
+        .setName(this.t("language"))
         .addDropdown((dropdown) => {
           dropdown
             .addOption("auto", "Auto")
@@ -37,7 +41,7 @@ export class CascadeSettingTab extends PluginSettingTab {
         });
 
       new Setting(section)
-        .setName("Start Cascade On Startup")
+        .setName(this.t("startCascadeOnStartup"))
         .addToggle((toggle) =>
           toggle.setValue(this.plugin.settings.startCascadeOnStartup).onChange(async (value) => {
             this.plugin.settings.startCascadeOnStartup = value;
@@ -48,10 +52,10 @@ export class CascadeSettingTab extends PluginSettingTab {
         
       if (!this.plugin.settings.startCascadeOnStartup) {
         new Setting(section)
-          .setName("Manual Start")
-          .setDesc("Como o Cascade não inicia automaticamente, você pode iniciar manualmente aqui.")
+          .setName(this.t("manualStart"))
+          .setDesc(this.t("manualStartDesc"))
           .addButton((button) => {
-            button.setButtonText("Start Cascade").onClick(() => {
+            button.setButtonText(this.t("startCascadeButton")).onClick(() => {
               // @ts-ignore
               this.app.commands.executeCommandById("obsidian-cascade:start-cascade");
             });
@@ -59,17 +63,17 @@ export class CascadeSettingTab extends PluginSettingTab {
       }
     });
 
-    this.renderSection("Agenda", false, (section) => {
-      this.addText(section, "Agenda Root", "", "agendaRoot");
+    this.renderSection(this.t("sectionAgenda"), false, (section) => {
+      this.addText(section, this.t("agendaRoot"), "", "agendaRoot");
 
-      this.renderSubSection(section, "Anual", (sub) => {
-        this.addToggleRefresh(sub, "yearlyEnabled", "Yearly Enabled");
+      this.renderSubSection(section, this.t("sectionAnnual"), (sub) => {
+        this.addToggleRefresh(sub, "yearlyEnabled", this.t("yearlyEnabled"));
         if (this.plugin.settings.yearlyEnabled) {
-          this.addToggle(sub, "openAnnualOnStartup", "Open on Startup");
-          this.addText(sub, "Yearly Format", "", "yearlyFormat");
-          this.addText(sub, "Yearly Template", "", "yearlyTemplate");
-          this.addText(sub, "Yearly Folder", "", "yearlyFolder");
-          new Setting(sub).setName("Operational Year Start Month (1 = Jan)").addText(t => 
+          this.addToggle(sub, "openAnnualOnStartup", this.t("openOnStartup"));
+          this.addText(sub, this.t("yearlyFormat"), "", "yearlyFormat");
+          this.addText(sub, this.t("yearlyTemplate"), "", "yearlyTemplate");
+          this.addText(sub, this.t("yearlyFolder"), "", "yearlyFolder");
+          new Setting(sub).setName(this.t("operationalYearStartMonth")).addText(t => 
              t.setValue(String(this.plugin.settings.operationalYearStartMonth)).onChange(async v => {
                 this.plugin.settings.operationalYearStartMonth = Number(v);
                 await this.plugin.saveSettings();
@@ -78,47 +82,47 @@ export class CascadeSettingTab extends PluginSettingTab {
         }
       });
 
-      this.renderSubSection(section, "Mensal", (sub) => {
-        this.addToggleRefresh(sub, "monthlyEnabled", "Monthly Enabled");
+      this.renderSubSection(section, this.t("sectionMonthly"), (sub) => {
+        this.addToggleRefresh(sub, "monthlyEnabled", this.t("monthlyEnabled"));
         if (this.plugin.settings.monthlyEnabled) {
-          this.addToggle(sub, "openMonthlyOnStartup", "Open on Startup");
-          this.addText(sub, "Monthly Format", "", "monthlyFormat");
-          this.addText(sub, "Monthly Template", "", "monthlyTemplate");
-          this.addText(sub, "Monthly Folder", "", "monthlyFolder");
+          this.addToggle(sub, "openMonthlyOnStartup", this.t("openOnStartup"));
+          this.addText(sub, this.t("monthlyFormat"), "", "monthlyFormat");
+          this.addText(sub, this.t("monthlyTemplate"), "", "monthlyTemplate");
+          this.addText(sub, this.t("monthlyFolder"), "", "monthlyFolder");
         }
       });
 
-      this.renderSubSection(section, "Semanal", (sub) => {
-        this.addToggleRefresh(sub, "weeklyEnabled", "Weekly Enabled");
+      this.renderSubSection(section, this.t("sectionWeekly"), (sub) => {
+        this.addToggleRefresh(sub, "weeklyEnabled", this.t("weeklyEnabled"));
         if (this.plugin.settings.weeklyEnabled) {
-          this.addToggle(sub, "openWeeklyOnStartup", "Open on Startup");
-          this.addText(sub, "Weekly Format", "", "weeklyFormat");
-          this.addText(sub, "Weekly Template", "", "weeklyTemplate");
-          this.addText(sub, "Weekly Folder", "", "weeklyFolder");
+          this.addToggle(sub, "openWeeklyOnStartup", this.t("openOnStartup"));
+          this.addText(sub, this.t("weeklyFormat"), "", "weeklyFormat");
+          this.addText(sub, this.t("weeklyTemplate"), "", "weeklyTemplate");
+          this.addText(sub, this.t("weeklyFolder"), "", "weeklyFolder");
         }
       });
 
-      this.renderSubSection(section, "Diário", (sub) => {
-        this.addToggle(sub, "openDailyOnStartup", "Open on Startup");
-        this.addText(sub, "Daily Format", "", "dailyFormat");
-        this.addText(sub, "Daily Template", "", "dailyTemplate");
-        this.addText(sub, "Daily Folder", "", "dailyFolder");
+      this.renderSubSection(section, this.t("sectionDaily"), (sub) => {
+        this.addToggle(sub, "openDailyOnStartup", this.t("openOnStartup"));
+        this.addText(sub, this.t("dailyFormat"), "", "dailyFormat");
+        this.addText(sub, this.t("dailyTemplate"), "", "dailyTemplate");
+        this.addText(sub, this.t("dailyFolder"), "", "dailyFolder");
       });
     });
 
-    this.renderSection("Migração", false, (section) => {
-      this.addToggle(section, "runMigrationOnStartup", "Run Migration on Startup");
-      this.addToggle(section, "runMigrationOnManualOpen", "Run Migration on Manual Open");
+    this.renderSection(this.t("sectionMigration"), false, (section) => {
+      this.addToggle(section, "runMigrationOnStartup", this.t("runMigrationOnStartup"));
+      this.addToggle(section, "runMigrationOnManualOpen", this.t("runMigrationOnManualOpen"));
     });
 
-    this.renderSection("Normalização", false, (section) => {
-      this.addToggleRefresh(section, "normalizerEnabled", "Normalizer Enabled");
+    this.renderSection(this.t("sectionNormalization"), false, (section) => {
+      this.addToggleRefresh(section, "normalizerEnabled", this.t("normalizerEnabled"));
 
-      this.renderSubSection(section, "Configurações", (sub) => {
+      this.renderSubSection(section, this.t("sectionSettings"), (sub) => {
         if (!this.plugin.settings.normalizerEnabled) {
-          this.addToggleRefresh(sub, "runNormalizerOnStartup", "Run Normalizer on Startup");
+          this.addToggleRefresh(sub, "runNormalizerOnStartup", this.t("runNormalizerOnStartup"));
           if (!this.plugin.settings.runNormalizerOnStartup) {
-            new Setting(sub).setName("Normalize Delay Seconds").addText(t => 
+            new Setting(sub).setName(this.t("normalizeDelaySeconds")).addText(t => 
                t.setValue(String(this.plugin.settings.normalizeDelaySeconds)).onChange(async v => {
                   this.plugin.settings.normalizeDelaySeconds = Number(v);
                   await this.plugin.saveSettings();
@@ -127,28 +131,28 @@ export class CascadeSettingTab extends PluginSettingTab {
           }
         }
 
-        new Setting(sub).setName("Normalizer Case").addDropdown(d => 
-           d.addOption("none", "Não alterar")
-            .addOption("uppercase", "MAIÚSCULA")
-            .addOption("lowercase", "MINÚSCULA")
-            .addOption("title", "Primeira Em Maiúscula")
+        new Setting(sub).setName(this.t("normalizerCase")).addDropdown(d => 
+           d.addOption("none", this.t("normalizerCaseNone"))
+            .addOption("uppercase", this.t("normalizerCaseUppercase"))
+            .addOption("lowercase", this.t("normalizerCaseLowercase"))
+            .addOption("title", this.t("normalizerCaseTitle"))
             .setValue(this.plugin.settings.normalizerCase)
             .onChange(async v => {
               this.plugin.settings.normalizerCase = v as any;
               await this.plugin.saveSettings();
             })
         );
-        this.addToggle(sub, "normalizerAccents", "Normalizer Accents");
-        this.addToggle(sub, "addTimestamp", "Add Timestamp");
+        this.addToggle(sub, "normalizerAccents", this.t("normalizerAccents"));
+        this.addToggle(sub, "addTimestamp", this.t("addTimestamp"));
 
-        new Setting(sub).setName("Normalizer Scopes").setDesc("Um caminho por linha.").addTextArea(t => 
+        new Setting(sub).setName(this.t("normalizerScopes")).setDesc(this.t("onePathPerLine")).addTextArea(t => 
            t.setValue(this.plugin.settings.normalizerScopes.join("\n")).onChange(async v => {
               this.plugin.settings.normalizerScopes = v.split("\n").map(s => s.trim()).filter(s => s);
               await this.plugin.saveSettings();
            })
         );
 
-        new Setting(sub).setName("Normalizer Ignored").setDesc("Um caminho por linha.").addTextArea(t => 
+        new Setting(sub).setName(this.t("normalizerIgnored")).setDesc(this.t("onePathPerLine")).addTextArea(t => 
            t.setValue(this.plugin.settings.normalizerIgnored.join("\n")).onChange(async v => {
               this.plugin.settings.normalizerIgnored = v.split("\n").map(s => s.trim()).filter(s => s);
               await this.plugin.saveSettings();
@@ -156,33 +160,33 @@ export class CascadeSettingTab extends PluginSettingTab {
         );
       });
 
-      this.renderSubSection(section, "Substituições", (sub) => {
+      this.renderSubSection(section, this.t("sectionReplacements"), (sub) => {
         new Setting(sub)
-          .setName("Substituições de caracteres")
-          .setDesc("Um par por linha no formato  de→para  (ex: \" \"→\"-\" ou \"ç\"→\"c\"). Use → para separar.");
+          .setName(this.t("replacementsTitle"))
+          .setDesc(this.t("replacementsDesc"));
         const replacementsContainer = sub.createDiv({ cls: "cascade-replacements" });
         const renderReplacements = (): void => {
           replacementsContainer.empty();
           const list = this.plugin.settings.normalizerReplacements;
           list.forEach((rep, index) => {
             const row = replacementsContainer.createDiv({ cls: "cascade-replacement-row" });
-            const fromInput = row.createEl("input", { type: "text", attr: { placeholder: "de", value: rep.from, style: "width:80px" } });
-            row.createSpan({ text: " → " });
-            const toInput = row.createEl("input", { type: "text", attr: { placeholder: "para", value: rep.to, style: "width:80px" } });
+            const fromInput = row.createEl("input", { type: "text", attr: { placeholder: this.t("placeholderFrom"), value: rep.from, style: "width:80px" } });
+            row.createSpan({ text: " \u2192 " });
+            const toInput = row.createEl("input", { type: "text", attr: { placeholder: this.t("placeholderTo"), value: rep.to, style: "width:80px" } });
             const save = async (): Promise<void> => {
               list[index] = { from: fromInput.value, to: toInput.value };
               await this.plugin.saveSettings();
             };
             fromInput.addEventListener("change", save);
             toInput.addEventListener("change", save);
-            const removeBtn = row.createEl("button", { text: "✕", attr: { style: "margin-left:4px" } });
+            const removeBtn = row.createEl("button", { text: "\u2715", attr: { style: "margin-left:4px" } });
             removeBtn.addEventListener("click", async () => {
               this.plugin.settings.normalizerReplacements.splice(index, 1);
               await this.plugin.saveSettings();
               renderReplacements();
             });
           });
-          const addBtn = replacementsContainer.createEl("button", { text: "+ Adicionar substituição", attr: { style: "margin-top:4px;display:block" } });
+          const addBtn = replacementsContainer.createEl("button", { text: this.t("addReplacement"), attr: { style: "margin-top:4px;display:block" } });
           addBtn.addEventListener("click", async () => {
             this.plugin.settings.normalizerReplacements.push({ from: "", to: "" });
             await this.plugin.saveSettings();
@@ -193,28 +197,28 @@ export class CascadeSettingTab extends PluginSettingTab {
       });
     });
 
-    this.renderSection("Tarefas", false, (section) => {
-      this.addToggleRefresh(section, "migrationEnabled", "Migration Enabled");
+    this.renderSection(this.t("sectionTasks"), false, (section) => {
+      this.addToggleRefresh(section, "migrationEnabled", this.t("migrationEnabled"));
 
-      this.renderSubSection(section, "Migração", (sub) => {
+      this.renderSubSection(section, this.t("sectionMigration"), (sub) => {
         if (this.plugin.settings.migrationEnabled) {
-          this.addText(sub, "Recurring Tasks Path", "", "recurringTasksPath");
-          this.addToggle(sub, "taskSetCreatedDate", "Set Created Date");
-          this.addToggle(sub, "taskSetDoneDate", "Set Done Date");
-          this.addToggle(sub, "cancelExpiredScheduled", "Cancel Expired Scheduled");
-          new Setting(sub).setName("Previous Day Migration Lookback").addText(t => 
+          this.addText(sub, this.t("recurringTasksPathLabel"), "", "recurringTasksPath");
+          this.addToggle(sub, "taskSetCreatedDate", this.t("taskSetCreatedDate"));
+          this.addToggle(sub, "taskSetDoneDate", this.t("taskSetDoneDate"));
+          this.addToggle(sub, "cancelExpiredScheduled", this.t("cancelExpiredScheduledLabel"));
+          new Setting(sub).setName(this.t("previousDayMigrationLookback")).addText(t => 
              t.setValue(String(this.plugin.settings.previousDayMigrationLookbackDays)).onChange(async v => {
                 this.plugin.settings.previousDayMigrationLookbackDays = Number(v);
                 await this.plugin.saveSettings();
              })
           );
-          this.addToggle(sub, "autoCompleteTaskFamilies", "Auto Complete Task Families");
-          this.addText(sub, "Task Global Filter", "", "taskGlobalFilter");
+          this.addToggle(sub, "autoCompleteTaskFamilies", this.t("autoCompleteTaskFamilies"));
+          this.addText(sub, this.t("taskGlobalFilter"), "", "taskGlobalFilter");
 
           const delayPresets = [0, 5, 10, 30];
           new Setting(sub)
-            .setName("Startup delay")
-            .setDesc("Seconds to wait before migration on startup")
+            .setName(this.t("startupDelay"))
+            .setDesc(this.t("startupDelayDesc"))
             .addDropdown((dd) => {
               for (const sec of delayPresets) dd.addOption(String(sec), `${sec}s`);
               dd.addOption("custom", "Custom...");
@@ -230,7 +234,7 @@ export class CascadeSettingTab extends PluginSettingTab {
             });
           if (!delayPresets.includes(this.plugin.settings.startupDelaySeconds)) {
             new Setting(sub)
-              .setName("Custom delay (seconds)")
+              .setName(this.t("customDelay"))
               .addText((t) =>
                 t
                   .setValue(String(this.plugin.settings.startupDelaySeconds))
@@ -245,12 +249,12 @@ export class CascadeSettingTab extends PluginSettingTab {
       });
     });
 
-    this.renderSection("Checkbox", false, (section) => this.renderStatusSettings(section));
+    this.renderSection(this.t("sectionCheckbox"), false, (section) => this.renderStatusSettings(section));
 
-    this.renderSection("Calendário", false, (section) => {
+    this.renderSection(this.t("sectionCalendar"), false, (section) => {
       new Setting(section)
-        .setName("Exibir botão na barra lateral")
-        .setDesc("Mostra um ícone de calendário na ribbon do Obsidian para abrir/fechar o calendário.")
+        .setName(this.t("calendarRibbonButton"))
+        .setDesc(this.t("calendarRibbonDesc"))
         .addToggle(t =>
           t.setValue(this.plugin.settings.calendarShowRibbonButton).onChange(async (value) => {
             this.plugin.settings.calendarShowRibbonButton = value;
@@ -258,25 +262,25 @@ export class CascadeSettingTab extends PluginSettingTab {
             this.plugin.updateCalendarRibbon();
           })
         );
-      new Setting(section).setName("First Day Of Week (0=Dom, 1=Seg)").addText(t => 
+      new Setting(section).setName(this.t("calendarFirstDayOfWeek")).addText(t => 
          t.setValue(String(this.plugin.settings.calendarFirstDayOfWeek)).onChange(async v => {
             this.plugin.settings.calendarFirstDayOfWeek = Number(v) as 0|1;
             await this.plugin.saveSettings();
          })
       );
-      this.addToggle(section, "calendarShowWeekNumber", "Show Week Number");
-      this.addToggle(section, "calendarOpenInNewLeaf", "Open In New Leaf");
-      this.addToggle(section, "calendarConfirmCreate", "Confirm Create");
+      this.addToggle(section, "calendarShowWeekNumber", this.t("calendarShowWeekNumber"));
+      this.addToggle(section, "calendarOpenInNewLeaf", this.t("calendarOpenInNewLeaf"));
+      this.addToggle(section, "calendarConfirmCreate", this.t("calendarConfirmCreateLabel"));
     });
 
-    this.renderSection("Frontmatter", false, (section) => {
-      this.addToggle(section, "frontmatterEnabled", "Enabled");
+    this.renderSection(this.t("sectionFrontmatter"), false, (section) => {
+      this.addToggle(section, "frontmatterEnabled", this.t("frontmatterEnabled"));
 
-      this.renderSubSection(section, "Configurações", (sub) => {
-        this.addText(sub, "Created Key", "", "frontmatterCreatedKey");
-        this.addText(sub, "Updated Key", "", "frontmatterUpdatedKey");
-        this.addText(sub, "Date Format", "", "frontmatterDateFormat");
-        new Setting(sub).setName("Ignored Paths").setDesc("Um caminho por linha.").addTextArea(t => 
+      this.renderSubSection(section, this.t("sectionSettings"), (sub) => {
+        this.addText(sub, this.t("frontmatterCreatedKey"), "", "frontmatterCreatedKey");
+        this.addText(sub, this.t("frontmatterUpdatedKey"), "", "frontmatterUpdatedKey");
+        this.addText(sub, this.t("frontmatterDateFormat"), "", "frontmatterDateFormat");
+        new Setting(sub).setName(this.t("frontmatterIgnoredPaths")).setDesc(this.t("onePathPerLine")).addTextArea(t => 
            t.setValue(this.plugin.settings.frontmatterIgnoredPaths.join("\n")).onChange(async v => {
               this.plugin.settings.frontmatterIgnoredPaths = v.split("\n").map(s => s.trim()).filter(s => s);
               await this.plugin.saveSettings();
@@ -285,27 +289,27 @@ export class CascadeSettingTab extends PluginSettingTab {
       });
     });
 
-    this.renderSection("Avançado", false, (section) => {
+    this.renderSection(this.t("sectionAdvanced"), false, (section) => {
       this.renderLoggingSubSection(section);
     });
   }
 
   private renderLoggingSubSection(parent: HTMLElement): void {
     const details = parent.createEl("details", { cls: "cascade-settings-section cascade-settings-subsection" });
-    details.open = this.openSections!.has("Log Interno");
+    details.open = this.openSections!.has(this.t("sectionInternalLog"));
     details.addEventListener("toggle", () => {
       if (details.open) {
-        this.openSections!.add("Log Interno");
+        this.openSections!.add(this.t("sectionInternalLog"));
       } else {
-        this.openSections!.delete("Log Interno");
+        this.openSections!.delete(this.t("sectionInternalLog"));
       }
     });
-    details.createEl("summary", { text: "Log Interno" });
+    details.createEl("summary", { text: this.t("sectionInternalLog") });
     const content = details.createDiv({ cls: "cascade-settings-section__content" });
 
     new Setting(content)
-      .setName("Ativar log interno")
-      .setDesc("Gera arquivos .md com registros de operações do plugin.")
+      .setName(this.t("loggingEnabled"))
+      .setDesc(this.t("loggingDesc"))
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.loggingEnabled).onChange(async (value) => {
           this.plugin.settings.loggingEnabled = value;
@@ -316,11 +320,11 @@ export class CascadeSettingTab extends PluginSettingTab {
 
     if (this.plugin.settings.loggingEnabled) {
       new Setting(content)
-        .setName("Pasta de logs")
-        .setDesc("Onde o arquivo de log será salvo. Deixe vazio para a raiz do vault.")
+        .setName(this.t("loggingFolder"))
+        .setDesc(this.t("loggingFolderDesc"))
         .addText((text) =>
           text
-            .setPlaceholder("ex: Logs/Cascade")
+            .setPlaceholder(this.t("loggingFolderPlaceholder"))
             .setValue(this.plugin.settings.loggingFolder)
             .onChange(async (value) => {
               this.plugin.settings.loggingFolder = value.trim();
@@ -329,8 +333,8 @@ export class CascadeSettingTab extends PluginSettingTab {
         );
 
       new Setting(content)
-        .setName("Nome do arquivo de log")
-        .setDesc("Nome do arquivo .md. Se incluir /, será tratado como caminho completo (ignora a pasta).")
+        .setName(this.t("loggingFilename"))
+        .setDesc(this.t("loggingFilenameDesc"))
         .addText((text) =>
           text
             .setPlaceholder("cascade-log.md")
@@ -342,8 +346,8 @@ export class CascadeSettingTab extends PluginSettingTab {
         );
 
       new Setting(content)
-        .setName("Retenção de logs (dias)")
-        .setDesc("Apaga entradas antigas acima deste limite. 0 = sem limite.")
+        .setName(this.t("loggingRetentionDays"))
+        .setDesc(this.t("loggingRetentionDesc"))
         .addText((text) =>
           text
             .setValue(String(this.plugin.settings.loggingRetentionDays))
@@ -353,12 +357,12 @@ export class CascadeSettingTab extends PluginSettingTab {
             }),
         );
 
-      new Setting(content).setName("Categorias").setDesc("Escolha o que deseja registrar no log.").setHeading();
+      new Setting(content).setName(this.t("sectionCategories")).setDesc(this.t("loggingDesc")).setHeading();
 
-      this.addToggle(content, "loggingStartup", "Startup");
-      this.addToggle(content, "loggingMigration", "Migração");
-      this.addToggle(content, "loggingNormalizer", "Normalização");
-      this.addToggle(content, "loggingErrors", "Erros");
+      this.addToggle(content, "loggingStartup", this.t("loggingStartup"));
+      this.addToggle(content, "loggingMigration", this.t("loggingMigration"));
+      this.addToggle(content, "loggingNormalizer", this.t("loggingNormalization"));
+      this.addToggle(content, "loggingErrors", this.t("loggingErrors"));
     }
   }
 
@@ -428,7 +432,7 @@ export class CascadeSettingTab extends PluginSettingTab {
   }
 
   private renderStatusSettings(parent: HTMLElement): void {
-    new Setting(parent).setName("Status padrao").setDesc("Estes status sao fundamentais e nao podem ser removidos.");
+    new Setting(parent).setName(this.t("statusDefault")).setDesc(this.t("statusDefaultDesc"));
     for (const status of this.plugin.settings.essentialStatuses) {
       const setting = new Setting(parent)
         .setName(status.label)
@@ -436,16 +440,16 @@ export class CascadeSettingTab extends PluginSettingTab {
       setting.nameEl.prepend(this.renderCheckboxSnippet(status.symbol));
       
       const badge = document.createElement("span");
-      badge.textContent = "padrao";
+      badge.textContent = this.t("statusDefaultBadge");
       badge.addClass("cascade-status-preview__lock");
       badge.style.marginLeft = "8px";
       setting.nameEl.appendChild(badge);
     }
 
-    new Setting(parent).setName("Status acessorios").setDesc("Status criados pelo usuario podem aparecer ou sumir do menu. Os padroes sempre aparecem.");
+    new Setting(parent).setName(this.t("statusAccessory")).setDesc(this.t("statusAccessoryDesc"));
     for (const [index, status] of this.plugin.settings.customStatuses.entries()) {
       const setting = new Setting(parent)
-        .setName(status.label || "Status sem nome")
+        .setName(status.label || this.t("statusUnnamed"))
         .setDesc(`Snippet [${status.symbol}]`)
         .addToggle((toggle) =>
           toggle.setValue(status.showInMenu !== false).onChange(async (value) => {
@@ -454,7 +458,7 @@ export class CascadeSettingTab extends PluginSettingTab {
           }),
         )
         .addButton((button) =>
-          button.setIcon("trash").setTooltip("Remover status").onClick(async () => {
+          button.setIcon("trash").setTooltip(this.t("removeStatus")).onClick(async () => {
             this.plugin.settings.customStatuses.splice(index, 1);
             await this.plugin.saveSettings();
             this.display();
@@ -467,21 +471,21 @@ export class CascadeSettingTab extends PluginSettingTab {
     let newLabel = "";
     let newIcon = "";
     new Setting(parent)
-      .setName("Adicionar status acessorio")
-      .addText((text) => text.setPlaceholder("simbolo").onChange((value) => (newSymbol = value)))
-      .addText((text) => text.setPlaceholder("nome").onChange((value) => (newLabel = value)))
-      .addText((text) => text.setPlaceholder("icone").onChange((value) => (newIcon = value)))
+      .setName(this.t("addAccessoryStatus"))
+      .addText((text) => text.setPlaceholder(this.t("placeholderSymbol")).onChange((value) => (newSymbol = value)))
+      .addText((text) => text.setPlaceholder(this.t("placeholderName")).onChange((value) => (newLabel = value)))
+      .addText((text) => text.setPlaceholder(this.t("placeholderIcon")).onChange((value) => (newIcon = value)))
       .addButton((button) =>
-        button.setButtonText("Adicionar").onClick(async () => {
+        button.setButtonText(this.t("add")).onClick(async () => {
           const symbol = newSymbol.trim();
           const label = newLabel.trim();
           const icon = newIcon.trim();
           if (!symbol || symbol.length !== 1 || !label) {
-            new Notice("Informe um simbolo de 1 caractere e um nome.");
+            new Notice(this.t("enterSymbolAndName"));
             return;
           }
           if (this.plugin.settings.essentialStatuses.some((item) => item.symbol === symbol) || this.plugin.settings.customStatuses.some((item) => item.symbol === symbol)) {
-            new Notice("Esse simbolo ja existe.");
+            new Notice(this.t("symbolExists"));
             return;
           }
           this.plugin.settings.customStatuses.push({ symbol, label, icon, essential: false, showInMenu: true });

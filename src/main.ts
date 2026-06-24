@@ -86,14 +86,14 @@ export default class CascadePlugin extends Plugin {
 
     this.addCommand({
       id: "start-cascade",
-      name: "Start Cascade",
+      name: this.i18n.t("startCascadeButton"),
       callback: async () => {
         try {
           await startup.run(true);
           new Notice(this.i18n.t("noticeMigrationDone") ?? "Cascade iniciado");
         } catch (error) {
           console.error(error);
-          new Notice("Erro ao iniciar o Cascade");
+          new Notice(this.i18n.t("errorStartingCascade"));
         }
       },
     });
@@ -108,7 +108,7 @@ export default class CascadePlugin extends Plugin {
     this.calendarRibbonEl?.remove();
     this.calendarRibbonEl = undefined;
     if (this.settings.calendarShowRibbonButton) {
-      this.calendarRibbonEl = this.addRibbonIcon("calendar-days", "Abrir Calendário", () => {
+      this.calendarRibbonEl = this.addRibbonIcon("calendar-days", this.i18n.t("openCalendar"), () => {
         void this.toggleCalendarCallback?.();
       });
     }
