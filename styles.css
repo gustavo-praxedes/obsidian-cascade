@@ -264,3 +264,305 @@
 .cascade-checkbox-menu-widget .task-list-item-checkbox {
   margin: 0;
 }
+
+/* ============================================
+   SETTINGS TAB REDESIGN
+   ============================================ */
+
+/* Header */
+.cascade-settings-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.cascade-settings-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-normal);
+}
+
+.cascade-settings-header__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Search */
+.cascade-settings-search {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s, 4px);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.cascade-settings-search:focus {
+  border-color: var(--accent-color);
+}
+
+.cascade-settings-search::placeholder {
+  color: var(--text-faint);
+}
+
+/* Action buttons */
+.cascade-settings-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s, 4px);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.cascade-settings-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.cascade-settings-btn--primary {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: var(--text-on-accent, white);
+}
+
+.cascade-settings-btn--primary:hover {
+  opacity: 0.9;
+  color: var(--text-on-accent, white);
+}
+
+.cascade-settings-btn--danger {
+  color: var(--color-red, #e93147);
+}
+
+.cascade-settings-btn--danger:hover {
+  background: rgba(var(--color-red-rgb, 233, 49, 71), 0.1);
+}
+
+/* Save indicator */
+.cascade-settings-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-green, #08b94e);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.cascade-settings-saved.is-visible {
+  opacity: 1;
+}
+
+/* Navigation tabs */
+.cascade-settings-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  background: var(--background-secondary);
+  border-radius: var(--radius-m, 6px);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.cascade-settings-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--radius-s, 4px);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.cascade-settings-nav__item:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.cascade-settings-nav__item.is-active {
+  background: var(--background-primary);
+  color: var(--text-normal);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.cascade-settings-nav__icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Section container */
+.cascade-settings-section-v2 {
+  animation: cascade-fadeIn 0.15s ease;
+}
+
+@keyframes cascade-fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Cards */
+.cascade-card {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m, 6px);
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.cascade-card:hover {
+  border-color: var(--background-modifier-border-hover, var(--background-modifier-border));
+}
+
+.cascade-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.cascade-card__icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.cascade-card__title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.cascade-card__reset {
+  padding: 2px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s, 4px);
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  opacity: 0;
+}
+
+.cascade-card:hover .cascade-card__reset {
+  opacity: 1;
+}
+
+.cascade-card__reset:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.cascade-card__body {
+  padding: 4px 0;
+}
+
+.cascade-card__body .setting-item {
+  border: none;
+  padding: 6px 14px;
+}
+
+.cascade-card__body .setting-item:hover {
+  background: transparent;
+}
+
+/* Tooltip */
+.cascade-tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: var(--background-modifier-border);
+  color: var(--text-faint);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: help;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.cascade-tooltip:hover {
+  background: var(--text-faint);
+  color: var(--background-primary);
+}
+
+.cascade-tooltip__content {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s, 4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  color: var(--text-normal);
+  font-size: 11px;
+  font-weight: 400;
+  white-space: nowrap;
+  max-width: 260px;
+  white-space: normal;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.cascade-tooltip:hover .cascade-tooltip__content {
+  display: block;
+}
+
+/* Legacy sections (for subsections still using details) */
+.cascade-settings-section {
+  border-top: 1px solid var(--background-modifier-border);
+  margin-top: 12px;
+  padding-top: 8px;
+}
+
+.cascade-settings-section > summary {
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 8px 0;
+  user-select: none;
+}
+
+.cascade-settings-section__content {
+  padding-bottom: 6px;
+}
+
+.cascade-settings-subsection {
+  margin-left: 16px;
+  border-left: 2px solid var(--background-modifier-border);
+  padding-left: 12px;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
