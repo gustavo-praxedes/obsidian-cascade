@@ -27,6 +27,7 @@ export const enUS = {
   weeklyStructureFlat: "Everything in the month",
 
   sectionGeneral: "General",
+  sectionFeatures: "Features",
   sectionAgenda: "Agenda",
   sectionAnnual: "Annual",
   sectionMonthly: "Monthly",

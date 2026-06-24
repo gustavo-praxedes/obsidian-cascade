@@ -105,10 +105,29 @@ export class CascadeSettingTab extends PluginSettingTab {
      NAVIGATION
      ============================================ */
 
+  private isSectionVisible(id: SectionId): boolean {
+    const s = this.plugin.settings;
+    switch (id) {
+      case "general": return true;
+      case "agenda": return true;
+      case "migration": return s.migrationEnabled;
+      case "normalization": return s.normalizerEnabled;
+      case "tasks": return s.migrationEnabled;
+      case "checkbox": return true;
+      case "calendar": return true;
+      case "frontmatter": return s.frontmatterEnabled;
+      case "advanced": return s.loggingEnabled;
+    }
+  }
+
   private renderNav(): void {
     if (!this.navContainer) return;
+    if (!this.isSectionVisible(this.activeSection)) {
+      this.activeSection = "general";
+    }
     this.navContainer.empty();
     for (const section of SECTIONS) {
+      if (!this.isSectionVisible(section.id)) continue;
       const btn = this.navContainer.createEl("button", {
         cls: `cascade-settings-nav__item${section.id === this.activeSection ? " is-active" : ""}`,
       });
@@ -215,6 +234,16 @@ export class CascadeSettingTab extends PluginSettingTab {
         });
       }
     });
+
+    this.renderCard(parent, "🎛️", this.t("sectionFeatures"), () => {
+      this.addTooltipedToggle("yearlyEnabled", this.t("yearlyEnabled"), this.t("tooltipYearlyEnabled"));
+      this.addTooltipedToggle("monthlyEnabled", this.t("monthlyEnabled"), this.t("tooltipMonthlyEnabled"));
+      this.addTooltipedToggle("weeklyEnabled", this.t("weeklyEnabled"), this.t("tooltipWeeklyEnabled"));
+      this.addTooltipedToggle("normalizerEnabled", this.t("normalizerEnabled"), this.t("tooltipNormalizerEnabled"));
+      this.addTooltipedToggle("migrationEnabled", this.t("migrationEnabled"), this.t("tooltipMigrationEnabled"));
+      this.addTooltipedToggle("frontmatterEnabled", this.t("frontmatterEnabled"), this.t("tooltipFrontmatterEnabled"));
+      this.addTooltipedToggle("loggingEnabled", this.t("loggingEnabled"), this.t("tooltipLoggingEnabled"));
+    });
   }
 
   /* ============================================
@@ -240,7 +269,6 @@ export class CascadeSettingTab extends PluginSettingTab {
     });
 
     this.renderCard(parent, "📆", this.t("sectionAnnual"), () => {
-      this.addTooltipedToggle("yearlyEnabled", this.t("yearlyEnabled"), this.t("tooltipYearlyEnabled"));
       if (this.plugin.settings.yearlyEnabled) {
         this.addToggle(parent, "openAnnualOnStartup", this.t("openOnStartup"));
         this.addText(parent, "yearlyFormat", "", "yearlyFormat");
@@ -251,7 +279,6 @@ export class CascadeSettingTab extends PluginSettingTab {
     });
 
     this.renderCard(parent, "📅", this.t("sectionMonthly"), () => {
-      this.addTooltipedToggle("monthlyEnabled", this.t("monthlyEnabled"), this.t("tooltipMonthlyEnabled"));
       if (this.plugin.settings.monthlyEnabled) {
         this.addToggle(parent, "openMonthlyOnStartup", this.t("openOnStartup"));
         this.addText(parent, "monthlyFormat", "", "monthlyFormat");
@@ -261,7 +288,6 @@ export class CascadeSettingTab extends PluginSettingTab {
     });
 
     this.renderCard(parent, "📋", this.t("sectionWeekly"), () => {
-      this.addTooltipedToggle("weeklyEnabled", this.t("weeklyEnabled"), this.t("tooltipWeeklyEnabled"));
       if (this.plugin.settings.weeklyEnabled) {
         this.addToggle(parent, "openWeeklyOnStartup", this.t("openOnStartup"));
         this.addText(parent, "weeklyFormat", "", "weeklyFormat");
@@ -334,8 +360,6 @@ export class CascadeSettingTab extends PluginSettingTab {
 
   private renderNormalizationSection(parent: HTMLElement): void {
     this.renderCard(parent, "📝", this.t("sectionNormalization"), () => {
-      this.addTooltipedToggle("normalizerEnabled", this.t("normalizerEnabled"), this.t("tooltipNormalizerEnabled"));
-
       if (this.plugin.settings.normalizerEnabled) {
         this.addTooltipedToggle(
           "runNormalizerOnStartup",
@@ -408,8 +432,6 @@ export class CascadeSettingTab extends PluginSettingTab {
 
   private renderTasksSection(parent: HTMLElement): void {
     this.renderCard(parent, "✅", this.t("sectionTasks"), () => {
-      this.addTooltipedToggle("migrationEnabled", this.t("migrationEnabled"), this.t("tooltipMigrationEnabled"));
-
       if (this.plugin.settings.migrationEnabled) {
         this.addText(parent, "recurringTasksPathLabel", "", "recurringTasksPath");
         this.addTooltipedToggle("taskSetCreatedDate", this.t("taskSetCreatedDate"), this.t("tooltipTaskSetCreated"));
@@ -482,8 +504,6 @@ export class CascadeSettingTab extends PluginSettingTab {
 
   private renderFrontmatterSection(parent: HTMLElement): void {
     this.renderCard(parent, "📄", this.t("sectionFrontmatter"), () => {
-      this.addTooltipedToggle("frontmatterEnabled", this.t("frontmatterEnabled"), this.t("tooltipFrontmatterEnabled"));
-
       if (this.plugin.settings.frontmatterEnabled) {
         this.addTooltipedSetting(
           "frontmatterCreatedKey",
@@ -539,8 +559,6 @@ export class CascadeSettingTab extends PluginSettingTab {
 
   private renderAdvancedSection(parent: HTMLElement): void {
     this.renderCard(parent, "📊", this.t("sectionInternalLog"), () => {
-      this.addTooltipedToggle("loggingEnabled", this.t("loggingEnabled"), this.t("tooltipLoggingEnabled"));
-
       if (this.plugin.settings.loggingEnabled) {
         this.addSetting("loggingFolder", this.t("loggingFolder"), this.t("loggingFolderDesc"), (setting) => {
           setting.addText((text) =>

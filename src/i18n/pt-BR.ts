@@ -27,6 +27,7 @@ export const ptBR = {
   weeklyStructureFlat: "Tudo junto no mes",
 
   sectionGeneral: "Geral",
+  sectionFeatures: "Funcionalidades",
   sectionAgenda: "Agenda",
   sectionAnnual: "Anual",
   sectionMonthly: "Mensal",
