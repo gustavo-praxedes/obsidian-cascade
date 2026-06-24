@@ -27,7 +27,7 @@ export function withDueDate(line: string, date: Date): string {
 }
 
 export function prepareRecurringTask(task: TaskBlock, date: Date): string {
-  return withOccurrenceDate(stripRecurrence(toOpenTask(task)), date);
+  return stripMarker(withOccurrenceDate(stripRecurrence(toOpenTask(task)), date));
 }
 
 export function uniqueNewTasks(existing: TaskBlock[], incoming: TaskBlock[]): TaskBlock[] {
@@ -77,6 +77,68 @@ export function prepareMigratedBlock(block: string): string {
     if (keepFollowingText && /^\s+/.test(line)) prepared.push(line);
   }
   return prepared.join("\n");
+}
+
+export function prepareForwardableMigratedBlock(block: string): string {
+  const lines = String(block || "").split(/\r?\n/);
+  const prepared: string[] = [];
+  let keepFollowingText = false;
+  for (const [index, line] of lines.entries()) {
+    if (index === 0) {
+      prepared.push(stripMarker(toOpenTask(line)));
+      keepFollowingText = true;
+      continue;
+    }
+    const match = line.match(/^(\s*)-\s+\[([^\]])\]/);
+    if (match) {
+      keepFollowingText = CARRYABLE_STATUSES.has(match[2]);
+      if (keepFollowingText) prepared.push(stripMarker(toOpenTask(line)));
+      continue;
+    }
+    if (keepFollowingText && /^\s+/.test(line)) prepared.push(line);
+  }
+  return prepared.join("\n");
+}
+
+export function prepareForwardableMigratedBlockPreservingStatus(block: string, originalStatus: string): string {
+  const lines = String(block || "").split(/\r?\n/);
+  const prepared: string[] = [];
+  let keepFollowingText = false;
+  for (const [index, line] of lines.entries()) {
+    if (index === 0) {
+      prepared.push(stripMarker(withTaskStatus(line, originalStatus)));
+      keepFollowingText = true;
+      continue;
+    }
+    const match = line.match(/^(\s*)-\s+\[([^\]])\]/);
+    if (match) {
+      keepFollowingText = CARRYABLE_STATUSES.has(match[2]);
+      if (keepFollowingText) prepared.push(stripMarker(toOpenTask(line)));
+      continue;
+    }
+    if (keepFollowingText && /^\s+/.test(line)) prepared.push(line);
+  }
+  return prepared.join("\n");
+}
+
+export function markEphemeralCancelledTaskBlockInContent(content: string, task: TaskBlock): string {
+  const lines = String(content || "").split(/\r?\n/);
+  const start = lines.findIndex((line) => line === task.line);
+  if (start === -1) return content;
+  const parentIndent = task.line.match(/^\s*/)?.[0].length ?? 0;
+  lines[start] = markCancelled(lines[start]);
+  for (let index = start + 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    const match = line.match(/^(\s*)-\s+\[([^\]])\]/);
+    if (match && match[1].length <= parentIndent) break;
+    if (/^#{1,6}\s+/.test(line)) break;
+    if (match && CARRYABLE_STATUSES.has(match[2])) lines[index] = markCancelled(line);
+  }
+  return lines.join("\n");
+}
+
+export function stripMarker(line: string): string {
+  return String(line).replace(/\s*🔚/gu, "").replace(/\s*🔜/gu, "").replace(/\s+/g, " ").trimEnd();
 }
 
 export function markMigratedTaskBlockInContent(content: string, task: TaskBlock): string {

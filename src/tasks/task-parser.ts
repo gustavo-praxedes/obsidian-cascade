@@ -143,6 +143,14 @@ export function dayPredicate(date: Date): (task: TaskBlock) => boolean {
   return (task) => isScheduledForDate(task.text, date);
 }
 
+export function isForwardableTask(task: TaskBlock): boolean {
+  return /🔜/u.test(task.text);
+}
+
+export function isEphemeralTask(task: TaskBlock): boolean {
+  return /🔚/u.test(task.text);
+}
+
 export function migratedPredicate(task: TaskBlock): boolean {
   return task.status === ">";
 }

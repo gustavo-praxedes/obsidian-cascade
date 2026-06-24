@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { extractTasksWithSubtasks, taskKey, taskLooseKey } from "../../src/tasks/task-parser";
+import { extractTasksWithSubtasks, isEphemeralTask, isForwardableTask, taskKey, taskLooseKey } from "../../src/tasks/task-parser";
 import {
+  markEphemeralCancelledTaskBlockInContent,
   markOpenChildrenOfMigratedBlocks,
   normalizeLogSpacing,
   normalizeRootTaskSpacing,
+  prepareForwardableMigratedBlock,
+  prepareForwardableMigratedBlockPreservingStatus,
   removeMigratedChildrenFromOpenBlocks,
+  stripMarker,
 } from "../../src/tasks/task-serializer";
 
 describe("TaskParser", () => {
@@ -41,5 +45,53 @@ describe("normalizeRootTaskSpacing", () => {
   it("adds a blank line between a task block and the next heading", () => {
     const input = ["# Junho", "", "## 15", "", "- [>] Tarefa migrada", "## 16"].join("\n");
     expect(normalizeLogSpacing(input)).toBe(["# Junho", "", "## 15", "", "- [>] Tarefa migrada", "", "## 16"].join("\n"));
+  });
+});
+
+describe("forwardable/ephemeral markers", () => {
+  it("detects 🔜 as forwardable", () => {
+    const task = { line: "- [ ] Estudar 🔜", block: "- [ ] Estudar 🔜", status: " ", text: "Estudar 🔜", indent: "" };
+    expect(isForwardableTask(task)).toBe(true);
+    expect(isEphemeralTask(task)).toBe(false);
+  });
+
+  it("detects 🔚 as ephemeral", () => {
+    const task = { line: "- [ ] Registrar 🔚", block: "- [ ] Registrar 🔚", status: " ", text: "Registrar 🔚", indent: "" };
+    expect(isEphemeralTask(task)).toBe(true);
+    expect(isForwardableTask(task)).toBe(false);
+  });
+
+  it("task without marker is neither forwardable nor ephemeral", () => {
+    const task = { line: "- [ ] Tarefa simples", block: "- [ ] Tarefa simples", status: " ", text: "Tarefa simples", indent: "" };
+    expect(isForwardableTask(task)).toBe(false);
+    expect(isEphemeralTask(task)).toBe(false);
+  });
+
+  it("stripMarker removes 🔜 and 🔚 from line", () => {
+    expect(stripMarker("- [ ] Estudar 🔜")).toBe("- [ ] Estudar");
+    expect(stripMarker("- [ ] Registrar 🔚")).toBe("- [ ] Registrar");
+    expect(stripMarker("- [ ] Sem marker")).toBe("- [ ] Sem marker");
+  });
+
+  it("prepareForwardableMigratedBlock creates open occurrence without marker", () => {
+    const block = "- [ ] Estudar inglês 📅 2026-06-23 🔜";
+    const result = prepareForwardableMigratedBlock(block);
+    expect(result).toBe("- [ ] Estudar inglês 📅 2026-06-23");
+    expect(result).not.toContain("🔜");
+  });
+
+  it("prepareForwardableMigratedBlockPreservingStatus preserves [/] status", () => {
+    const block = "- [/] Estudar inglês 📅 2026-06-23 🔜";
+    const result = prepareForwardableMigratedBlockPreservingStatus(block, "/");
+    expect(result).toBe("- [/] Estudar inglês 📅 2026-06-23");
+    expect(result).not.toContain("🔜");
+  });
+
+  it("markEphemeralCancelledTaskBlockInContent cancels task and children", () => {
+    const content = ["- [ ] Registrar ponto 🔚", "\t- [ ] Subtarefa"].join("\n");
+    const task = { line: "- [ ] Registrar ponto 🔚", block: content, status: " ", text: "Registrar ponto 🔚", indent: "" };
+    const result = markEphemeralCancelledTaskBlockInContent(content, task);
+    expect(result).toContain("- [-] Registrar ponto 🔚");
+    expect(result).toContain("\t- [-] Subtarefa");
   });
 });

@@ -10,6 +10,7 @@ import {
   extractRootTasks,
   extractSectionTasks,
   extractTasksWithSubtasks,
+  isEphemeralTask,
   isOpenTask,
   metadataDate,
   migratedHeadingPredicate,
@@ -23,11 +24,13 @@ import { RecurrenceService } from "./recurrence-service";
 import {
   insertIntoSection,
   markCancelled,
+  markEphemeralCancelledTaskBlockInContent,
   markMigrated,
   markMigratedTaskBlockInContent,
   markOpenChildrenOfMigratedBlocks,
   normalizeLogSpacing as normalizeLogTextSpacing,
-  prepareMigratedBlock,
+  prepareForwardableMigratedBlock,
+  prepareForwardableMigratedBlockPreservingStatus,
   removeMigratedChildrenFromOpenBlocks,
   prepareRecurringTask,
   uniqueNewPreparedTasks,
@@ -102,10 +105,20 @@ export class MigrationService {
     const pred = monthPredicate(info.monthName);
     const pending = extractSectionTasks(annual, pred).filter((task) => isOpenTask(task) && !/\bevery\b/i.test(task.line));
     if (!pending.length) return;
-    const unique = uniqueNewPreparedTasks(extractTasksWithSubtasks(monthly), pending.map((task) => prepareMigratedBlock(task.block)));
+    const ephemeral = pending.filter(isEphemeralTask);
+    const forwardable = pending.filter((task) => !isEphemeralTask(task));
+    const unique = uniqueNewPreparedTasks(
+      extractTasksWithSubtasks(monthly),
+      forwardable.map((task) =>
+        task.status === "/"
+          ? prepareForwardableMigratedBlockPreservingStatus(task.block, task.status)
+          : prepareForwardableMigratedBlock(task.block),
+      ),
+    );
     monthly = insertAfterH1Compat(monthly, unique);
     let updatedAnnual = annual;
-    for (const task of pending) updatedAnnual = markMigratedTaskBlockInContent(updatedAnnual, task);
+    for (const task of ephemeral) updatedAnnual = markEphemeralCancelledTaskBlockInContent(updatedAnnual, task);
+    for (const task of forwardable) updatedAnnual = markMigratedTaskBlockInContent(updatedAnnual, task);
     await this.files.write(monthlyPath, monthly);
     await this.files.write(annualPath, updatedAnnual);
   }
@@ -156,19 +169,34 @@ export class MigrationService {
     const dayTasks = extractSectionTasks(daySource, dayHeadingPredicate(info.dd)).filter(
       (task) => (task.status === " " || task.status === ">") && isDueForDay(task.line, date),
     );
-    const tasks = [...rootTasks, ...migratedTasks, ...weeklyRootTasks, ...weeklyMigratedTasks, ...dayTasks];
-    const unique = uniqueNewPreparedTasks(extractTasksWithSubtasks(daily), tasks.map((task) => prepareMigratedBlock(task.block)));
-    if (!unique.length) return;
-    await this.files.write(dailyPath, insertAfterH1Compat(daily, unique));
+    const allTasks = [...rootTasks, ...migratedTasks, ...weeklyRootTasks, ...weeklyMigratedTasks, ...dayTasks];
+    const ephemeral = allTasks.filter(isEphemeralTask);
+    const forwardable = allTasks.filter((task) => !isEphemeralTask(task));
+    const unique = uniqueNewPreparedTasks(
+      extractTasksWithSubtasks(daily),
+      forwardable.map((task) =>
+        task.status === "/"
+          ? prepareForwardableMigratedBlockPreservingStatus(task.block, task.status)
+          : prepareForwardableMigratedBlock(task.block),
+      ),
+    );
+    if (!unique.length && !ephemeral.length) return;
+    if (unique.length) await this.files.write(dailyPath, insertAfterH1Compat(daily, unique));
     let updatedMonthly = monthly;
     let updatedWeekly = weekly;
     for (const task of [...rootTasks, ...migratedTasks].filter((task) => task.status === " " && unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)))) {
       updatedMonthly = markMigratedTaskBlockInContent(updatedMonthly, task);
     }
+    for (const task of [...rootTasks, ...migratedTasks].filter((task) => isEphemeralTask(task) && task.status === " ")) {
+      updatedMonthly = markEphemeralCancelledTaskBlockInContent(updatedMonthly, task);
+    }
     for (const task of [...weeklyRootTasks, ...weeklyMigratedTasks, ...dayTasks].filter(
       (task) => task.status === " " && unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)),
     )) {
       updatedWeekly = markMigratedTaskBlockInContent(updatedWeekly, task);
+    }
+    for (const task of [...weeklyRootTasks, ...weeklyMigratedTasks, ...dayTasks].filter((task) => isEphemeralTask(task) && task.status === " ")) {
+      updatedWeekly = markEphemeralCancelledTaskBlockInContent(updatedWeekly, task);
     }
     await this.files.write(monthlyPath, updatedMonthly);
     if (this.paths.weeklyEnabled()) await this.files.write(weeklyPath, updatedWeekly);
@@ -191,13 +219,25 @@ export class MigrationService {
     const pending = previousDayCarryTasks(previousContent);
     const scheduledExpired = pending.filter((task) => !metadataDate(task.line, "📅") && /⏳\s*\d{4}-\d{2}-\d{2}/u.test(task.line));
     const toCarry = pending.filter((task) => !scheduledExpired.includes(task));
-    const unique = uniqueNewPreparedTasks(extractTasksWithSubtasks(todayContent), toCarry.map((task) => prepareMigratedBlock(task.block)));
+    const ephemeral = toCarry.filter(isEphemeralTask);
+    const forwardable = toCarry.filter((task) => !isEphemeralTask(task));
+    const unique = uniqueNewPreparedTasks(
+      extractTasksWithSubtasks(todayContent),
+      forwardable.map((task) =>
+        task.status === "/"
+          ? prepareForwardableMigratedBlockPreservingStatus(task.block, task.status)
+          : prepareForwardableMigratedBlock(task.block),
+      ),
+    );
     let updatedPrevious = previousContent;
     if (unique.length) {
       await this.files.write(todayPath, insertAfterH1Compat(todayContent, unique));
-      for (const task of toCarry.filter((task) => unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)))) {
+      for (const task of forwardable.filter((task) => unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)))) {
         updatedPrevious = markMigratedTaskBlockInContent(updatedPrevious, task);
       }
+    }
+    for (const task of ephemeral) {
+      updatedPrevious = markEphemeralCancelledTaskBlockInContent(updatedPrevious, task);
     }
     if (this.settings.cancelExpiredScheduled) {
       for (const task of scheduledExpired) {
