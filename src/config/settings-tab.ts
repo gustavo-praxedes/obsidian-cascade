@@ -630,57 +630,35 @@ export class CascadeSettingTab extends PluginSettingTab {
 
   private renderOpenOnStartupDropdown(parent: HTMLElement): void {
     const options = [
-      { key: "openAnnualOnStartup" as const, label: this.t("sectionAnnual"), enabled: this.plugin.settings.yearlyEnabled },
-      { key: "openMonthlyOnStartup" as const, label: this.t("sectionMonthly"), enabled: this.plugin.settings.monthlyEnabled },
-      { key: "openWeeklyOnStartup" as const, label: this.t("sectionWeekly"), enabled: this.plugin.settings.weeklyEnabled },
-      { key: "openDailyOnStartup" as const, label: this.t("sectionDaily"), enabled: true },
+      { key: "none" as const, label: "None" },
+      { key: "openAnnualOnStartup" as const, label: this.t("sectionAnnual") },
+      { key: "openMonthlyOnStartup" as const, label: this.t("sectionMonthly") },
+      { key: "openWeeklyOnStartup" as const, label: this.t("sectionWeekly") },
+      { key: "openDailyOnStartup" as const, label: this.t("sectionDaily") },
     ];
 
-    const activeCount = options.filter((o) => this.plugin.settings[o.key]).length;
-    const summary = activeCount === 0 ? "None" : options.filter((o) => this.plugin.settings[o.key]).map((o) => o.label.replace(" ", "")).join(", ");
+    const activeKey = options.slice(1).find((o) => this.plugin.settings[o.key as keyof typeof this.plugin.settings])?.key ?? "openDailyOnStartup";
+    const activeLabel = options.find((o) => o.key === activeKey)?.label ?? "Daily";
 
-    const setting = new Setting(parent).setName(this.t("openOnStartup")).setDesc(summary);
-    const triggerBtn = setting.infoEl.createEl("button", { cls: "button button-primary", text: `${activeCount}/${options.length}` });
-
-    let dropdown: HTMLElement | null = null;
-
-    const closeDropdown = (): void => {
-      if (dropdown) {
-        dropdown.remove();
-        dropdown = null;
-      }
-    };
-
-    const toggleDropdown = (e: MouseEvent): void => {
-      e.stopPropagation();
-      if (dropdown) {
-        closeDropdown();
-        return;
-      }
-      dropdown = setting.settingEl.createDiv({ cls: "cascade-checkbox-menu-widget" });
-      dropdown.style.position = "absolute";
-      dropdown.style.zIndex = "1000";
-
-      const ul = dropdown.createEl("ul");
+    const setting = new Setting(parent).setName(this.t("openOnStartup")).setDesc(activeLabel);
+    setting.addDropdown((dropdown) => {
       for (const opt of options) {
-        const li = ul.createEl("li", { cls: "cascade-checkbox-menu-widget__item" });
-        const checkbox = li.createEl("input", { attr: { type: "checkbox" } });
-        checkbox.checked = this.plugin.settings[opt.key];
-        checkbox.disabled = !opt.enabled;
-        li.createSpan({ text: opt.label });
-        if (!opt.enabled) li.createSpan({ text: " (disabled)", attr: { style: "color:var(--text-faint);font-size:11px" } });
-        checkbox.addEventListener("change", async () => {
-          (this.plugin.settings as any)[opt.key] = checkbox.checked;
-          await this.plugin.saveSettings();
-          this.showSaved();
-          closeDropdown();
-          this.display();
-        });
+        dropdown.addOption(opt.key, opt.label);
       }
-    };
-
-    triggerBtn.addEventListener("click", toggleDropdown);
-    document.addEventListener("click", closeDropdown);
+      dropdown.setValue(activeKey);
+      dropdown.onChange(async (value) => {
+        this.plugin.settings.openAnnualOnStartup = false;
+        this.plugin.settings.openMonthlyOnStartup = false;
+        this.plugin.settings.openWeeklyOnStartup = false;
+        this.plugin.settings.openDailyOnStartup = false;
+        if (value !== "none") {
+          (this.plugin.settings as any)[value] = true;
+        }
+        await this.plugin.saveSettings();
+        this.showSaved();
+        this.display();
+      });
+    });
   }
 
   /* ============================================
