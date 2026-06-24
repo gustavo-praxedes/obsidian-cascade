@@ -510,4 +510,130 @@ describe("memory vault integration", () => {
     }
   });
 
+  it("creates daily notes for lost days when opening after multiple days", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        weeklyEnabled: false,
+        recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+        previousDayMigrationLookbackDays: 3,
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const today = new Date(2026, 5, 15);
+      await files.write(settings.recurringTasksPath, "");
+      await files.write(paths.annualPath(today), paths.renderAnnualLog(today));
+      await files.write(paths.monthlyPath(today), paths.renderMonthlyLog(today));
+
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
+      await migration.run(today);
+
+      expect(vault.files.has(paths.dailyPath(new Date(2026, 5, 14)))).toBe(true);
+      expect(vault.files.has(paths.dailyPath(new Date(2026, 5, 13)))).toBe(true);
+      expect(vault.files.has(paths.dailyPath(new Date(2026, 5, 12)))).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("migrates annual tasks into lost daily notes via cascade", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        weeklyEnabled: false,
+        recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+        previousDayMigrationLookbackDays: 2,
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const today = new Date(2026, 5, 15);
+      const yesterday = new Date(2026, 5, 14);
+      await files.write(settings.recurringTasksPath, "");
+      await files.write(paths.annualPath(today), paths.renderAnnualLog(today));
+      await files.write(paths.monthlyPath(today), paths.renderMonthlyLog(today));
+
+      const monthly = paths.renderMonthlyLog(today);
+      const updatedMonthly = monthly.replace(
+        `## [[${paths.dailyPath(yesterday).replace(/\.md$/, "")}|14 - DOMINGO]]\n`,
+        `## [[${paths.dailyPath(yesterday).replace(/\.md$/, "")}|14 - DOMINGO]]\n\n- [ ] Tarefa do mensal para ontem\n`,
+      );
+      await files.write(paths.monthlyPath(today), updatedMonthly);
+
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
+      await migration.run(today);
+
+      const yesterdayText = await files.read(paths.dailyPath(yesterday));
+      expect(yesterdayText).toContain("- [>] Tarefa do mensal para ontem");
+      const todayText = await files.read(paths.dailyPath(today));
+      expect(todayText).toContain("- [ ] Tarefa do mensal para ontem");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("ensures lost weekly notes exist when weekly is enabled", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+        previousDayMigrationLookbackDays: 10,
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const today = new Date(2026, 5, 15);
+      await files.write(settings.recurringTasksPath, "");
+      await files.write(paths.annualPath(today), paths.renderAnnualLog(today));
+      await files.write(paths.monthlyPath(today), paths.renderMonthlyLog(today));
+
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
+      await migration.run(today);
+
+      const lastWeek = new Date(2026, 5, 8);
+      expect(vault.files.has(paths.weeklyPath(lastWeek))).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("carries tasks from lost days into subsequent days", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15, 11, 20));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        weeklyEnabled: false,
+        recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+        previousDayMigrationLookbackDays: 3,
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const today = new Date(2026, 5, 15);
+      await files.write(settings.recurringTasksPath, "");
+      await files.write(paths.annualPath(today), paths.renderAnnualLog(today));
+      await files.write(paths.monthlyPath(today), paths.renderMonthlyLog(today));
+      const threeDaysAgo = new Date(2026, 5, 12);
+      await files.write(paths.dailyPath(threeDaysAgo), `${paths.renderDailyLog(threeDaysAgo)}- [ ] Tarefa antiga de 3 dias\n`);
+
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
+      await migration.run(today);
+
+      const threeDaysAgoText = await files.read(paths.dailyPath(threeDaysAgo));
+      expect(threeDaysAgoText).toContain("- [>] Tarefa antiga de 3 dias");
+      const todayText = await files.read(paths.dailyPath(today));
+      expect(todayText).toContain("- [ ] Tarefa antiga de 3 dias");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
 });

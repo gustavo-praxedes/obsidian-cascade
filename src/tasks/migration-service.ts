@@ -50,6 +50,7 @@ export class MigrationService {
     if (!this.settings.migrationEnabled) return;
     await this.lock.runExclusive(async () => {
       this.log.migration.info("Migration begin");
+      await this.processLostPeriods(date);
       await this.ensureCascadeFiles(date);
       await this.seedAnnualFromRecurring(date);
       await this.ensureMonthly(date);
@@ -61,6 +62,44 @@ export class MigrationService {
       await this.normalizeLogSpacing(date);
       this.log.migration.info("Migration complete");
     });
+  }
+
+  private async processLostPeriods(date: Date): Promise<void> {
+    const days = Math.max(0, Math.floor(this.settings.previousDayMigrationLookbackDays));
+    if (!days) return;
+
+    const processedMonths = new Set<string>();
+    const processedWeeks = new Set<string>();
+
+    for (let offset = days; offset >= 1; offset -= 1) {
+      const past = addDays(date, -offset);
+
+      const monthKey = `${past.getFullYear()}-${past.getMonth()}`;
+      if (!processedMonths.has(monthKey)) {
+        processedMonths.add(monthKey);
+        await this.ensureMonthly(past);
+        await this.migrateAnnualToMonthly(past);
+      }
+
+      if (this.paths.weeklyEnabled()) {
+        const weekPath = this.paths.weeklyPath(past);
+        if (!processedWeeks.has(weekPath)) {
+          processedWeeks.add(weekPath);
+          await this.files.ensureFile(weekPath, this.paths.renderWeeklyLog(past));
+        }
+      }
+
+      await this.ensureDayCascade(past);
+    }
+  }
+
+  private async ensureDayCascade(date: Date): Promise<void> {
+    const dailyPath = this.paths.dailyPath(date);
+    const existing = await this.files.read(dailyPath);
+    if (!existing) {
+      await this.files.write(dailyPath, this.paths.renderDailyLog(date));
+    }
+    await this.migrateMonthlyToDaily(date);
   }
 
   private async ensureCascadeFiles(date: Date): Promise<void> {
