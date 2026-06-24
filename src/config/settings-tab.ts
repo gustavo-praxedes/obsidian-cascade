@@ -26,8 +26,6 @@ const SECTIONS: { id: SectionId; icon: string; labelKey: string }[] = [
 
 export class CascadeSettingTab extends PluginSettingTab {
   private activeSection: SectionId = "general";
-  private searchQuery = "";
-  private searchInput: HTMLInputElement | null = null;
   private savedIndicator: HTMLElement | null = null;
   private savedTimer: ReturnType<typeof setTimeout> | null = null;
   private navContainer: HTMLElement | null = null;
@@ -69,36 +67,6 @@ export class CascadeSettingTab extends PluginSettingTab {
       cls: "cascade-settings-saved",
       text: `✓ ${this.t("settingsSaved")}`,
     });
-
-    const btnRow = header.createDiv({ cls: "cascade-settings-header__actions" });
-
-    this.searchInput = header.createEl("input", {
-      cls: "cascade-settings-search",
-      attr: { type: "text", placeholder: this.t("settingsSearchPlaceholder") },
-    });
-    this.searchInput.addEventListener("input", () => {
-      this.searchQuery = this.searchInput?.value.toLowerCase() ?? "";
-      this.renderSection(this.activeSection);
-    });
-
-    new Setting(btnRow)
-      .addButton((btn) =>
-        btn
-          .setButtonText(this.t("settingsExport"))
-          .setCta()
-          .onClick(() => this.exportSettings()),
-      )
-      .addButton((btn) =>
-        btn
-          .setButtonText(this.t("settingsImport"))
-          .onClick(() => this.importSettings()),
-      )
-      .addButton((btn) =>
-        btn
-          .setButtonText(this.t("settingsResetAll"))
-          .setWarning()
-          .onClick(() => this.resetAll()),
-      );
   }
 
   /* ============================================
@@ -924,54 +892,6 @@ export class CascadeSettingTab extends PluginSettingTab {
             }),
         );
     }
-  }
-
-  /* ============================================
-     IMPORT / EXPORT / RESET
-     ============================================ */
-
-  private exportSettings(): void {
-    const data = JSON.stringify(this.plugin.settings, null, 2);
-    const blob = new Blob([data], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "cascade-settings.json";
-    a.click();
-    URL.revokeObjectURL(url);
-    new Notice(this.t("settingsExportSuccess"));
-  }
-
-  private importSettings(): void {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-    input.addEventListener("change", async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      try {
-        const text = await file.text();
-        const data = JSON.parse(text);
-        if (!data || typeof data !== "object" || !data.agendaRoot) {
-          new Notice(this.t("settingsImportError"));
-          return;
-        }
-        Object.assign(this.plugin.settings, data);
-        await this.plugin.saveSettings();
-        new Notice(this.t("settingsImportSuccess"));
-        this.display();
-      } catch {
-        new Notice(this.t("settingsImportError"));
-      }
-    });
-    input.click();
-  }
-
-  private async resetAll(): Promise<void> {
-    const { DEFAULT_SETTINGS } = await import("./defaults");
-    Object.assign(this.plugin.settings, structuredClone(DEFAULT_SETTINGS));
-    await this.plugin.saveSettings();
-    this.display();
   }
 
   /* ============================================
