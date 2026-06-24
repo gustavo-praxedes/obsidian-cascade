@@ -1,9 +1,8 @@
 import { Notice, Plugin, type EventRef } from "obsidian";
-import { registerCommands } from "./app/commands";
+import { registerCommands, toggleCalendar } from "./app/commands";
 import { EventRegistry } from "./app/events";
 import { StartupOrchestrator } from "./app/lifecycle";
 import { CalendarService } from "./calendar/calendar-service";
-import { CalendarView, CASCADE_CALENDAR_VIEW } from "./calendar/calendar-view";
 import { CascadeSettingTab } from "./config/settings-tab";
 import type { CascadeSettings } from "./config/schema";
 import { mergeSettings } from "./config/defaults";
@@ -66,16 +65,7 @@ export default class CascadePlugin extends Plugin {
       });
     });
 
-    this.toggleCalendarCallback = async () => {
-      const leaves = this.app.workspace.getLeavesOfType(CASCADE_CALENDAR_VIEW);
-      if (leaves.length) {
-        this.app.workspace.detachLeavesOfType(CASCADE_CALENDAR_VIEW);
-        return;
-      }
-      const leaf = this.app.workspace.getRightLeaf(false);
-      await leaf?.setViewState({ type: CASCADE_CALENDAR_VIEW, active: true });
-      if (leaf) this.app.workspace.revealLeaf(leaf);
-    };
+    this.toggleCalendarCallback = () => toggleCalendar(this.app);
 
     this.updateCalendarRibbon();
 

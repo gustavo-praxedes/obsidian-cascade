@@ -72,14 +72,14 @@ export class NoteService {
     return file;
   }
 
-  async openDate(date: Date): Promise<TFile> {
+  async openDate(date: Date, newLeaf = false): Promise<TFile> {
     const file = await this.createDaily(date);
-    await this.openFile(file);
+    await this.openFile(file, newLeaf);
     return file;
   }
 
-  private async openFile(file: TFile): Promise<void> {
-    const leaf: WorkspaceLeaf = this.app.workspace.getLeaf(false);
+  private async openFile(file: TFile, newLeaf = false): Promise<void> {
+    const leaf: WorkspaceLeaf = this.app.workspace.getLeaf(newLeaf);
     await leaf.openFile(file);
   }
 

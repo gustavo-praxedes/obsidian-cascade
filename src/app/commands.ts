@@ -1,4 +1,4 @@
-import { Notice, type Plugin } from "obsidian";
+import { Notice, type App, type Plugin } from "obsidian";
 import { CalendarView, CASCADE_CALENDAR_VIEW } from "../calendar/calendar-view";
 import { CalendarService } from "../calendar/calendar-service";
 import { MigrationService } from "../tasks/migration-service";
@@ -8,6 +8,17 @@ import type { CascadeSettings } from "../config/schema";
 import { ScheduledTaskService } from "../tasks/scheduled-task-service";
 
 type CascadePluginLike = Plugin & { settings: CascadeSettings };
+
+export async function toggleCalendar(app: App): Promise<void> {
+  const leaves = app.workspace.getLeavesOfType(CASCADE_CALENDAR_VIEW);
+  if (leaves.length) {
+    app.workspace.detachLeavesOfType(CASCADE_CALENDAR_VIEW);
+    return;
+  }
+  const leaf = app.workspace.getRightLeaf(false);
+  await leaf?.setViewState({ type: CASCADE_CALENDAR_VIEW, active: true });
+  if (leaf) app.workspace.revealLeaf(leaf);
+}
 
 export function registerCommands(
   plugin: CascadePluginLike,
@@ -59,17 +70,8 @@ export function registerCommands(
   plugin.addCommand({
     id: "toggle-calendar",
     name: i18n.t("toggleCalendar"),
-    callback: async () => {
-      const leaves = plugin.app.workspace.getLeavesOfType(CASCADE_CALENDAR_VIEW);
-      if (leaves.length) {
-        plugin.app.workspace.detachLeavesOfType(CASCADE_CALENDAR_VIEW);
-        return;
-      }
-      const leaf = plugin.app.workspace.getRightLeaf(false);
-      await leaf?.setViewState({ type: CASCADE_CALENDAR_VIEW, active: true });
-      if (leaf) plugin.app.workspace.revealLeaf(leaf);
-    },
+    callback: () => toggleCalendar(plugin.app),
   });
 
-  plugin.registerView(CASCADE_CALENDAR_VIEW, (leaf) => new CalendarView(leaf, notes, calendar));
+  plugin.registerView(CASCADE_CALENDAR_VIEW, (leaf) => new CalendarView(leaf, notes, calendar, i18n, plugin.settings));
 }

@@ -4,6 +4,9 @@ import { FileService } from "../vault/file-service";
 import type { Vault } from "obsidian";
 
 export class CalendarService {
+  private hasDailyCache = new Map<string, boolean>();
+  private cacheMonthKey = "";
+
   constructor(
     private readonly settings: CascadeSettings,
     private readonly paths: PathService,
@@ -23,12 +26,27 @@ export class CalendarService {
     });
   }
 
-  hasDaily(date: Date): boolean {
-    // Busca exata primeiro (caso ideal, sem normalização)
-    if (this.files.exists(this.paths.dailyPath(date))) return true;
+  getWeekNumber(date: Date): number {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  }
 
-    // Fallback: busca por prefixo numérico de data no vault inteiro
-    // Isso cobre casos onde a normalização mudou o nome (acentos, case, etc.)
-    return this.vault.getMarkdownFiles().some((f) => f.basename.startsWith(this.paths.dailyPrefix(date)));
+  hasDaily(date: Date): boolean {
+    const mk = `${date.getFullYear()}-${date.getMonth()}`;
+    if (mk !== this.cacheMonthKey) {
+      this.hasDailyCache.clear();
+      this.cacheMonthKey = mk;
+    }
+    const key = date.toISOString().slice(0, 10);
+    if (this.hasDailyCache.has(key)) return this.hasDailyCache.get(key)!;
+
+    const result =
+      this.files.exists(this.paths.dailyPath(date)) ||
+      this.vault.getMarkdownFiles().some((f) => f.basename.startsWith(this.paths.dailyPrefix(date)));
+    this.hasDailyCache.set(key, result);
+    return result;
   }
 }

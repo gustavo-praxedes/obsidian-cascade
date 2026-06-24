@@ -45,6 +45,12 @@ export class Menu {
 
 export class MarkdownView {}
 export class ItemView {}
+export class Modal {
+  contentEl = { empty: () => {}, createEl: () => ({}), createDiv: () => ({}) };
+  constructor(public app: unknown) {}
+  open(): void {}
+  close(): void {}
+}
 export function setIcon(): void {}
 export class Plugin {}
 export class PluginSettingTab {}

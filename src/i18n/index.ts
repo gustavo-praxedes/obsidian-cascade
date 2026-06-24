@@ -21,6 +21,10 @@ export class I18n {
     return dictionaries[this.language][key] ?? enUS[key] ?? key;
   }
 
+  tArray(key: MessageKey): string[] {
+    return this.t(key).split(",").map((s) => s.trim());
+  }
+
   private detectLanguage(): Exclude<CascadeLanguage, "auto"> {
     const locale = window.localStorage.getItem("language") ?? navigator.language;
     return locale.toLowerCase().startsWith("pt") ? "pt-BR" : "en-US";

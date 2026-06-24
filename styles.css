@@ -77,6 +77,11 @@
   grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
+.cascade-calendar__header.show-week-numbers,
+.cascade-calendar__grid.show-week-numbers {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
 .cascade-calendar__weekday {
   align-items: center;
   display: flex;
@@ -89,6 +94,16 @@
   font-weight: 700;
   height: 34px;
   letter-spacing: 0;
+}
+
+.cascade-calendar__week-number {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  font-size: 10px;
+  height: 34px;
+  justify-content: center;
+  opacity: 0.6;
 }
 
 .cascade-calendar__day {
