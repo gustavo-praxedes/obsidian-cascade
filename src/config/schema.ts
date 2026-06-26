@@ -19,6 +19,12 @@ export interface FolderTemplate {
   template: string;
 }
 
+export interface SettingsPreset {
+  name: string;
+  settings: Partial<CascadeSettings>;
+  createdAt: string;
+}
+
 export interface CascadeSettings {
   language: CascadeLanguage;
   startCascadeOnStartup: boolean;
@@ -51,7 +57,8 @@ export interface CascadeSettings {
 
   runMigrationOnStartup: boolean;
   runMigrationOnManualOpen: boolean;
-  startupDelaySeconds: number;
+  startupDelayMode: 0 | 5 | 10 | 30 | "custom";
+  startupDelayCustomSeconds: number;
 
   normalizerEnabled: boolean;
   runNormalizerOnStartup: boolean;
@@ -101,4 +108,7 @@ export interface CascadeSettings {
   // Deprecated fields kept for backward compat migration
   normalizerIgnored?: string[];
   frontmatterIgnoredPaths?: string[];
+
+  // Presets (stored in plugin data, not in settings file)
+  presets?: SettingsPreset[];
 }

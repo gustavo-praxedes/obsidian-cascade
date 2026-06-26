@@ -540,6 +540,546 @@
   display: block;
 }
 
+/* ============================================
+   PHASE 2 — UX CENTRAL
+   ============================================ */
+
+/* Format preview */
+.cascade-format-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  margin-top: 4px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s, 4px);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+}
+
+.cascade-format-preview__label {
+  color: var(--text-faint);
+  font-family: inherit;
+}
+
+.cascade-format-preview__value {
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+/* Validation error */
+.cascade-field-error {
+  color: var(--color-red, #e93147);
+  font-size: 12px;
+  margin-top: 4px;
+  padding-left: 2px;
+}
+
+.cascade-setting-item--error .setting-item-control input,
+.cascade-setting-item--error .setting-item-control textarea {
+  border-color: var(--color-red, #e93147) !important;
+}
+
+/* Dependent section disabled */
+.cascade-dependent-hint {
+  padding: 8px 14px;
+  color: var(--text-faint);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* Radio cards */
+.cascade-radio-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.cascade-radio-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 2px solid var(--background-modifier-border);
+  border-radius: var(--radius-m, 6px);
+  background: var(--background-primary);
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.cascade-radio-card:hover {
+  border-color: var(--accent-color);
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.cascade-radio-card.is-selected {
+  border-color: var(--accent-color);
+  background: rgba(var(--accent-color-rgb, 109, 156, 255), 0.08);
+  color: var(--text-normal);
+  font-weight: 600;
+}
+
+.cascade-radio-card__icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Browse button */
+.cascade-browse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s, 4px);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  margin-left: 4px;
+}
+
+.cascade-browse-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* ============================================
+   PHASE 3 — POLISH
+   ============================================ */
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Replacements table */
+.cascade-replacements-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.cascade-replacements-table th {
+  text-align: left;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.cascade-replacements-table td {
+  padding: 4px 6px;
+  vertical-align: middle;
+}
+
+.cascade-replacements-table tr[draggable="true"] {
+  cursor: grab;
+  transition: background 0.1s ease;
+}
+
+.cascade-replacements-table tr[draggable="true"]:hover {
+  background: var(--background-modifier-hover);
+}
+
+.cascade-replacements-table tr.is-dragging {
+  opacity: 0.4;
+  background: var(--background-secondary);
+}
+
+.cascade-replacements-table tr.is-drag-over {
+  border-top: 2px solid var(--accent-color);
+}
+
+.cascade-replacements-table input[type="text"] {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s, 4px);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 13px;
+}
+
+.cascade-replacements-table input[type="text"]:focus {
+  border-color: var(--accent-color);
+  outline: none;
+}
+
+.cascade-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--text-faint);
+  cursor: grab;
+  font-size: 14px;
+  border-radius: var(--radius-s, 4px);
+  transition: color 0.1s ease;
+}
+
+.cascade-drag-handle:hover {
+  color: var(--text-normal);
+}
+
+.cascade-row-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius-s, 4px);
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.1s ease;
+}
+
+.cascade-row-delete:hover {
+  background: rgba(var(--color-red-rgb, 233, 49, 71), 0.1);
+  color: var(--color-red, #e93147);
+}
+
+/* Status cards */
+.cascade-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+  padding: 8px 14px;
+}
+
+.cascade-status-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m, 6px);
+  background: var(--background-primary);
+  transition: border-color 0.15s ease;
+}
+
+.cascade-status-card:hover {
+  border-color: var(--background-modifier-border-hover, var(--background-modifier-border));
+}
+
+.cascade-status-card--essential {
+  opacity: 0.85;
+}
+
+.cascade-status-card__checkbox {
+  flex-shrink: 0;
+}
+
+.cascade-status-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cascade-status-card__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cascade-status-card__meta {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-family: var(--font-monospace);
+}
+
+.cascade-status-card__badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--background-secondary);
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.cascade-status-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cascade-status-card__actions .setting-control-shortcuts {
+  display: none;
+}
+
+/* Status add form */
+.cascade-status-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  flex-wrap: wrap;
+}
+
+.cascade-status-add input {
+  padding: 4px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s, 4px);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 13px;
+}
+
+.cascade-status-add input:focus {
+  border-color: var(--accent-color);
+  outline: none;
+}
+
+.cascade-status-add input[data-field="symbol"] {
+  width: 40px;
+  text-align: center;
+  font-family: var(--font-monospace);
+}
+
+.cascade-status-add input[data-field="label"] {
+  width: 120px;
+}
+
+.cascade-status-add input[data-field="icon"] {
+  width: 80px;
+}
+
+/* ARIA & Focus */
+.cascade-settings-nav__item:focus-visible,
+.cascade-radio-card:focus-visible,
+.cascade-card__reset:focus-visible,
+.cascade-row-delete:focus-visible,
+.cascade-drag-handle:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.cascade-settings-search:focus-visible {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(var(--accent-color-rgb, 109, 156, 255), 0.25);
+}
+
+/* Skip link */
+.cascade-skip-link {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  padding: 8px 16px;
+  background: var(--accent-color);
+  color: var(--text-on-accent, white);
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 1000;
+  border-radius: 0 0 var(--radius-s, 4px) 0;
+  transition: top 0.15s ease;
+}
+
+.cascade-skip-link:focus {
+  top: 0;
+}
+
+/* Mobile responsive */
+@media (max-width: 600px) {
+  .cascade-settings-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 4px;
+  }
+
+  .cascade-settings-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cascade-settings-nav__item {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    min-height: 44px;
+  }
+
+  .cascade-radio-cards {
+    flex-direction: column;
+  }
+
+  .cascade-radio-card {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .cascade-status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cascade-status-add {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cascade-status-add input {
+    width: 100% !important;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  .cascade-replacements-table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .cascade-card__body .setting-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .cascade-card__body .setting-item-control {
+    width: 100%;
+  }
+
+  .cascade-card__body .setting-item-control input[type="text"],
+  .cascade-card__body .setting-item-control textarea {
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+}
+
+/* ============================================
+   PHASE 4 — ADVANCED
+   ============================================ */
+
+/* Presets list */
+.cascade-presets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 14px;
+}
+
+.cascade-preset-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m, 6px);
+  background: var(--background-secondary);
+  transition: border-color 0.15s ease;
+}
+
+.cascade-preset-row:hover {
+  border-color: var(--accent-color);
+}
+
+.cascade-preset-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cascade-preset-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cascade-preset-date {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.cascade-preset-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Doc links */
+.cascade-doc-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 14px;
+}
+
+.cascade-doc-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s, 4px);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-size: 12px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.cascade-doc-link:hover {
+  background: var(--background-modifier-hover);
+  color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.cascade-doc-link__arrow {
+  opacity: 0.5;
+}
+
+.cascade-doc-link:hover .cascade-doc-link__arrow {
+  opacity: 1;
+}
+
+/* Sync info */
+.cascade-sync-note {
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.cascade-sync-note code {
+  padding: 1px 4px;
+  background: var(--background-secondary);
+  border-radius: 3px;
+  font-family: var(--font-monospace);
+  font-size: 11px;
+}
+
 /* Legacy sections (for subsections still using details) */
 .cascade-settings-section {
   border-top: 1px solid var(--background-modifier-border);

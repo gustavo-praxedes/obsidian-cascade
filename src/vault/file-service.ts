@@ -55,6 +55,17 @@ export class FileService {
     const abstract = this.vault.getAbstractFileByPath(normalizePath(path));
     return abstract instanceof TFile ? abstract : null;
   }
+
+  lastProcessedDate(pattern: RegExp, extractDate: (basename: string) => Date | null): Date | null {
+    let latest: Date | null = null;
+    for (const file of this.vault.getMarkdownFiles()) {
+      if (!pattern.test(file.basename)) continue;
+      const date = extractDate(file.basename);
+      if (!date) continue;
+      if (!latest || date > latest) latest = date;
+    }
+    return latest;
+  }
 }
 
 export function parentFolder(path: string): string {

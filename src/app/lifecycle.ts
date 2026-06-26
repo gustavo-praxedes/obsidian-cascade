@@ -58,7 +58,13 @@ export class StartupOrchestrator {
   }
 
   private async applyStartupDelay(): Promise<void> {
-    const seconds = Math.max(0, Math.floor(this.settings.startupDelaySeconds));
+    let seconds = 0;
+    const mode = this.settings.startupDelayMode;
+    if (mode === "custom") {
+      seconds = Math.max(0, Math.floor(this.settings.startupDelayCustomSeconds));
+    } else {
+      seconds = mode;
+    }
     if (!seconds) return;
     this.log.startup.info(`Waiting ${seconds}s before startup`);
     await sleep(seconds * 1000);

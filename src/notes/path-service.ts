@@ -116,8 +116,7 @@ export class PathService {
   }
 
   annualBase(date = new Date()): string {
-    const year = this.operationalYear(date);
-    return `${year}00000000-${year}`;
+    return renderFormat(this.settings.yearlyFormat, this.dateInfo(date));
   }
 
   monthlyBase(date = new Date()): string {

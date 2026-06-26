@@ -1,4 +1,4 @@
-import type { CascadeSettings, StatusDef } from "./schema";
+import type { CascadeSettings, StatusDef, SettingsPreset, FolderTemplate } from "./schema";
 
 export const ESSENTIAL_STATUSES: StatusDef[] = [
   { symbol: " ", label: "To-do", essential: true },
@@ -60,7 +60,8 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
 
   runMigrationOnStartup: true,
   runMigrationOnManualOpen: true,
-  startupDelaySeconds: 0,
+  startupDelayMode: 0,
+  startupDelayCustomSeconds: 0,
 
   normalizerEnabled: false,
   runNormalizerOnStartup: false,
@@ -106,18 +107,40 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
   ignoredPaths: [],
   templatesFolder: "",
   folderTemplates: [],
+  presets: [],
 };
 
 export function mergeSettings(data: Partial<CascadeSettings> | null | undefined): CascadeSettings {
   const migratedIgnoredPaths = migrateIgnoredPaths(data);
+  const raw: Record<string, unknown> = data ?? {};
+
+  // Migrate old startupDelaySeconds to new startupDelayMode + startupDelayCustomSeconds
+  let startupDelayMode: 0 | 5 | 10 | 30 | "custom" = DEFAULT_SETTINGS.startupDelayMode;
+  let startupDelayCustomSeconds = DEFAULT_SETTINGS.startupDelayCustomSeconds;
+  if (typeof raw.startupDelaySeconds === "number") {
+    const val = raw.startupDelaySeconds;
+    if ([0, 5, 10, 30].includes(val)) {
+      startupDelayMode = val as 0 | 5 | 10 | 30 | "custom";
+    } else {
+      startupDelayMode = "custom";
+      startupDelayCustomSeconds = val;
+    }
+  } else {
+    startupDelayMode = (raw.startupDelayMode as 0 | 5 | 10 | 30 | "custom") ?? DEFAULT_SETTINGS.startupDelayMode;
+    startupDelayCustomSeconds = (raw.startupDelayCustomSeconds as number) ?? DEFAULT_SETTINGS.startupDelayCustomSeconds;
+  }
+
   return {
     ...DEFAULT_SETTINGS,
-    ...(data ?? {}),
+    ...raw,
     essentialStatuses: ESSENTIAL_STATUSES,
-    customStatuses: mergeCustomStatuses(data?.customStatuses),
-    normalizerScopes: data?.normalizerScopes ?? DEFAULT_SETTINGS.normalizerScopes,
+    customStatuses: mergeCustomStatuses(raw.customStatuses as StatusDef[] | undefined),
+    normalizerScopes: (raw.normalizerScopes as string[]) ?? DEFAULT_SETTINGS.normalizerScopes,
     ignoredPaths: migratedIgnoredPaths,
-    folderTemplates: data?.folderTemplates ?? [],
+    presets: (raw.presets as SettingsPreset[]) ?? [],
+    folderTemplates: (raw.folderTemplates as FolderTemplate[]) ?? [],
+    startupDelayMode,
+    startupDelayCustomSeconds,
   };
 }
 

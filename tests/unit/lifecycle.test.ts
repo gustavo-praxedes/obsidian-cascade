@@ -13,7 +13,8 @@ function mockSettings(overrides: Partial<CascadeSettings> = {}): CascadeSettings
     startCascadeOnStartup: true,
     runMigrationOnStartup: false,
     runNormalizerOnStartup: false,
-    startupDelaySeconds: 0,
+    startupDelayMode: 0,
+    startupDelayCustomSeconds: 0,
     openAnnualOnStartup: false,
     openMonthlyOnStartup: false,
     openWeeklyOnStartup: false,
@@ -59,8 +60,8 @@ describe("StartupOrchestrator startup delay", () => {
     vi.useRealTimers();
   });
 
-  it("skips delay when startupDelaySeconds is 0", async () => {
-    const settings = mockSettings({ startupDelaySeconds: 0 });
+  it("skips delay when startupDelayMode is 0", async () => {
+    const settings = mockSettings({ startupDelayMode: 0 });
     const orch = createOrchestrator(settings);
     const spy = vi.spyOn(window, "setTimeout");
 
@@ -72,8 +73,8 @@ describe("StartupOrchestrator startup delay", () => {
     spy.mockRestore();
   });
 
-  it("applies delay when startupDelaySeconds > 0", async () => {
-    const settings = mockSettings({ startupDelaySeconds: 5 });
+  it("applies delay when startupDelayMode > 0", async () => {
+    const settings = mockSettings({ startupDelayMode: 5 });
     const orch = createOrchestrator(settings);
     const spy = vi.spyOn(window, "setTimeout");
 
@@ -85,8 +86,8 @@ describe("StartupOrchestrator startup delay", () => {
     spy.mockRestore();
   });
 
-  it("skips delay when startupDelaySeconds is negative", async () => {
-    const settings = mockSettings({ startupDelaySeconds: -3 });
+  it("skips delay when startupDelayMode is negative (handled by mode)", async () => {
+    const settings = mockSettings({ startupDelayMode: 0 }); // negative not possible with new model
     const orch = createOrchestrator(settings);
     const spy = vi.spyOn(window, "setTimeout");
 
@@ -98,8 +99,8 @@ describe("StartupOrchestrator startup delay", () => {
     spy.mockRestore();
   });
 
-  it("rounds fractional delay to integer", async () => {
-    const settings = mockSettings({ startupDelaySeconds: 7.8 });
+  it("uses custom delay when mode is custom", async () => {
+    const settings = mockSettings({ startupDelayMode: "custom", startupDelayCustomSeconds: 7 });
     const orch = createOrchestrator(settings);
     const spy = vi.spyOn(window, "setTimeout");
 
