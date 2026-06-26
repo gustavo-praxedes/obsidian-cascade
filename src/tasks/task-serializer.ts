@@ -122,7 +122,7 @@ export function prepareForwardableMigratedBlock(block: string): string {
     const match = line.match(/^(\s*)-\s+\[([^\]])\]/);
     if (match) {
       keepFollowingText = CARRYABLE_STATUSES.has(match[2]);
-      if (keepFollowingText) prepared.push(stripMarker(toOpenTask(line)));
+      if (keepFollowingText) prepared.push(preserveTimeMarker(line, stripMarker(toOpenTask(line))));
       continue;
     }
     if (keepFollowingText && /^\s+/.test(line)) prepared.push(line);
@@ -143,7 +143,7 @@ export function prepareForwardableMigratedBlockPreservingStatus(block: string, o
     const match = line.match(/^(\s*)-\s+\[([^\]])\]/);
     if (match) {
       keepFollowingText = CARRYABLE_STATUSES.has(match[2]);
-      if (keepFollowingText) prepared.push(stripMarker(withTaskStatus(line, match[2])));
+      if (keepFollowingText) prepared.push(preserveTimeMarker(line, stripMarker(withTaskStatus(line, match[2]))));
       continue;
     }
     if (keepFollowingText && /^\s+/.test(line)) prepared.push(line);
