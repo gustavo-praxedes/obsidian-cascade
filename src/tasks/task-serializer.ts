@@ -7,6 +7,14 @@ const RECURRENCE_RE = /\s*🔁\s*every\b.*?(?=\s+(?:🏁|➕|🛫|⏳|📅|❌|�
 
 const TIME_MARKER_RE = /\s*⏰\s*\d{1,2}:\d{2}/u;
 
+export function withCreatedDate(line: string, date: Date): string {
+  return replaceOrAppendDate(line, "➕", date);
+}
+
+export function withDoneDate(line: string, date: Date): string {
+  return replaceOrAppendDate(line, "✅", date);
+}
+
 export function toOpenTask(task: TaskBlock | string): string {
   const line = typeof task === "string" ? task : task.line;
   return withTaskStatus(line, " ");
@@ -135,7 +143,7 @@ export function prepareForwardableMigratedBlockPreservingStatus(block: string, o
     const match = line.match(/^(\s*)-\s+\[([^\]])\]/);
     if (match) {
       keepFollowingText = CARRYABLE_STATUSES.has(match[2]);
-      if (keepFollowingText) prepared.push(stripMarker(toOpenTask(line)));
+      if (keepFollowingText) prepared.push(stripMarker(withTaskStatus(line, match[2])));
       continue;
     }
     if (keepFollowingText && /^\s+/.test(line)) prepared.push(line);

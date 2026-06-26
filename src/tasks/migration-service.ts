@@ -34,6 +34,8 @@ import {
   removeMigratedChildrenFromOpenBlocks,
   prepareRecurringTask,
   uniqueNewPreparedTasks,
+  withCreatedDate,
+  withDoneDate,
 } from "./task-serializer";
 
 export class MigrationService {
@@ -45,6 +47,34 @@ export class MigrationService {
     private readonly lock: LockService,
     private readonly log: LogService,
   ) {}
+
+  private prepareForwardedBlock(task: TaskBlock): string {
+    const prepared = task.status === "/"
+      ? prepareForwardableMigratedBlockPreservingStatus(task.block, task.status)
+      : prepareForwardableMigratedBlock(task.block);
+    return this.settings.taskSetCreatedDate ? withCreatedDate(prepared, new Date()) : prepared;
+  }
+
+  private prepareCarriedBlock(task: TaskBlock): string {
+    const prepared = task.status === "/"
+      ? prepareForwardableMigratedBlockPreservingStatus(task.block, task.status)
+      : prepareForwardableMigratedBlock(task.block);
+    return this.settings.taskSetCreatedDate ? withCreatedDate(prepared, new Date()) : prepared;
+  }
+
+  private markTaskMigrated(content: string, task: TaskBlock): string {
+    let updated = markMigratedTaskBlockInContent(content, task);
+    if (this.settings.taskSetDoneDate) {
+      updated = updated.replace(task.line, withDoneDate(markMigrated(task.line), new Date()));
+    }
+    return updated;
+  }
+
+  private matchesGlobalFilter(task: TaskBlock): boolean {
+    const filter = this.settings.taskGlobalFilter?.trim();
+    if (!filter) return true;
+    return task.line.includes(filter);
+  }
 
   async run(date = new Date()): Promise<void> {
     if (!this.settings.migrationEnabled) return;
@@ -130,7 +160,7 @@ export class MigrationService {
       return;
     }
     const recurring = await this.files.read(this.settings.recurringTasksPath);
-    const tasks = extractRecurringTasks(recurring);
+    const tasks = extractRecurringTasks(recurring).filter((task) => this.matchesGlobalFilter(task));
     const counts = looseKeyCounts(tasks.map((task) => task.line));
     const annualPath = this.paths.annualPath(date);
     let annual = await this.files.read(annualPath);
@@ -162,16 +192,12 @@ export class MigrationService {
     const forwardable = pending.filter((task) => !isEphemeralTask(task));
     const unique = uniqueNewPreparedTasks(
       extractTasksWithSubtasks(monthly),
-      forwardable.map((task) =>
-        task.status === "/"
-          ? prepareForwardableMigratedBlockPreservingStatus(task.block, task.status)
-          : prepareForwardableMigratedBlock(task.block),
-      ),
+      forwardable.map((task) => this.prepareForwardedBlock(task)),
     );
     monthly = insertAfterH1Compat(monthly, unique);
     let updatedAnnual = annual;
     for (const task of ephemeral) updatedAnnual = markEphemeralCancelledTaskBlockInContent(updatedAnnual, task);
-    for (const task of forwardable) updatedAnnual = markMigratedTaskBlockInContent(updatedAnnual, task);
+    for (const task of forwardable) updatedAnnual = this.markTaskMigrated(updatedAnnual, task);
     await this.files.write(monthlyPath, monthly);
     await this.files.write(annualPath, updatedAnnual);
   }
@@ -179,7 +205,7 @@ export class MigrationService {
   async seedMonthlyRecurring(date = new Date()): Promise<void> {
     if (!this.settings.recurringTasksPath) return;
     const source = await this.files.read(this.settings.recurringTasksPath);
-    const tasks = extractRecurringTasks(source);
+    const tasks = extractRecurringTasks(source).filter((task) => this.matchesGlobalFilter(task));
     if (!tasks.length) return;
     const counts = looseKeyCounts(tasks.map((task) => task.line));
     const targetPath = this.paths.weeklyEnabled() ? this.paths.weeklyPath(date) : this.paths.monthlyPath(date);
@@ -194,7 +220,9 @@ export class MigrationService {
           }
         }
         const pred = dayHeadingPredicate(this.paths.dateInfo(occurrence).dd);
-        const prepared = prepareRecurringTask(task, occurrence);
+        const prepared = this.settings.taskSetCreatedDate
+          ? withCreatedDate(prepareRecurringTask(task, occurrence), occurrence)
+          : prepareRecurringTask(task, occurrence);
         if (hasUniqueLooseKey(task.line, counts)) {
           // Replacement preserves the current task status when the operational copy already exists.
         }
@@ -218,7 +246,7 @@ export class MigrationService {
   private async seedRecurringToWeeklyOrDaily(date = new Date()): Promise<void> {
     if (!this.settings.recurringTasksPath) return;
     const source = await this.files.read(this.settings.recurringTasksPath);
-    const tasks = extractRecurringTasks(source);
+    const tasks = extractRecurringTasks(source).filter((task) => this.matchesGlobalFilter(task));
     if (!tasks.length) return;
     const counts = looseKeyCounts(tasks.map((task) => task.line));
     if (this.paths.weeklyEnabled()) {
@@ -238,7 +266,9 @@ export class MigrationService {
     let daily = await this.files.read(dailyPath);
     for (const task of tasks) {
       for (const occurrence of this.recurrence.datesInMonthForTask(task.line, date)) {
-        const prepared = prepareRecurringTask(task, occurrence);
+        const prepared = this.settings.taskSetCreatedDate
+          ? withCreatedDate(prepareRecurringTask(task, occurrence), occurrence)
+          : prepareRecurringTask(task, occurrence);
         const unique = uniqueNewPreparedTasks(extractTasksWithSubtasks(daily), [prepared]);
         if (unique.length) daily = insertAfterH1Compat(daily, unique);
       }
@@ -272,18 +302,14 @@ export class MigrationService {
     const forwardable = allTasks.filter((task) => !isEphemeralTask(task));
     const unique = uniqueNewPreparedTasks(
       extractTasksWithSubtasks(daily),
-      forwardable.map((task) =>
-        task.status === "/"
-          ? prepareForwardableMigratedBlockPreservingStatus(task.block, task.status)
-          : prepareForwardableMigratedBlock(task.block),
-      ),
+      forwardable.map((task) => this.prepareForwardedBlock(task)),
     );
     if (!unique.length && !ephemeral.length) return;
     if (unique.length) await this.files.write(dailyPath, insertAfterH1Compat(daily, unique));
     let updatedMonthly = monthly;
     let updatedWeekly = weekly;
     for (const task of [...rootTasks, ...migratedTasks].filter((task) => (task.status === " " || task.status === "/") && unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)))) {
-      updatedMonthly = markMigratedTaskBlockInContent(updatedMonthly, task);
+      updatedMonthly = this.markTaskMigrated(updatedMonthly, task);
     }
     for (const task of [...rootTasks, ...migratedTasks].filter((task) => isEphemeralTask(task) && (task.status === " " || task.status === "/"))) {
       updatedMonthly = markEphemeralCancelledTaskBlockInContent(updatedMonthly, task);
@@ -291,7 +317,7 @@ export class MigrationService {
     for (const task of [...weeklyRootTasks, ...weeklyMigratedTasks, ...dayTasks].filter(
       (task) => (task.status === " " || task.status === "/") && unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)),
     )) {
-      updatedWeekly = markMigratedTaskBlockInContent(updatedWeekly, task);
+      updatedWeekly = this.markTaskMigrated(updatedWeekly, task);
     }
     for (const task of [...weeklyRootTasks, ...weeklyMigratedTasks, ...dayTasks].filter((task) => isEphemeralTask(task) && (task.status === " " || task.status === "/"))) {
       updatedWeekly = markEphemeralCancelledTaskBlockInContent(updatedWeekly, task);
@@ -299,7 +325,7 @@ export class MigrationService {
     for (const task of weeklyDayTasks.filter(
       (task) => unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)),
     )) {
-      updatedWeekly = markMigratedTaskBlockInContent(updatedWeekly, task);
+      updatedWeekly = this.markTaskMigrated(updatedWeekly, task);
     }
     if (this.settings.monthlyEnabled) await this.files.write(monthlyPath, updatedMonthly);
     if (this.paths.weeklyEnabled()) await this.files.write(weeklyPath, updatedWeekly);
@@ -326,13 +352,13 @@ export class MigrationService {
     const forwardable = toCarry.filter((task) => !isEphemeralTask(task));
     const unique = uniqueNewPreparedTasks(
       extractTasksWithSubtasks(todayContent),
-      forwardable.map((task) => prepareForwardableMigratedBlock(task.block)),
+      forwardable.map((task) => this.prepareCarriedBlock(task)),
     );
     let updatedPrevious = previousContent;
     if (unique.length) {
       await this.files.write(todayPath, insertAfterH1Compat(todayContent, unique));
       for (const task of forwardable.filter((task) => unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)))) {
-        updatedPrevious = markMigratedTaskBlockInContent(updatedPrevious, task);
+        updatedPrevious = this.markTaskMigrated(updatedPrevious, task);
       }
     }
     for (const task of ephemeral) {
@@ -404,7 +430,9 @@ export class MigrationService {
     const targetPath = this.paths.weeklyEnabled() ? this.paths.weeklyPath(occurrence) : this.paths.monthlyPath(occurrence);
     const target = await this.files.read(targetPath);
     const pred = dayHeadingPredicate(this.paths.dateInfo(occurrence).dd);
-    const prepared = prepareRecurringTask(task, occurrence);
+    const prepared = this.settings.taskSetCreatedDate
+      ? withCreatedDate(prepareRecurringTask(task, occurrence), occurrence)
+      : prepareRecurringTask(task, occurrence);
     if (hasUniqueLooseKey(task.line, counts)) {
       // Replacement preserves the current task status when the operational copy already exists.
     }

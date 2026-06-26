@@ -322,7 +322,7 @@ describe("memory vault integration", () => {
 
       const todayText = await files.read(paths.dailyPath(today));
       const yesterdayText = await files.read(paths.dailyPath(yesterday));
-      expect(todayText).toContain(["- [ ] Projeto em progresso", "\t- [ ] Filha em progresso"].join("\n"));
+      expect(todayText).toContain(["- [/] Projeto em progresso", "\t- [/] Filha em progresso"].join("\n"));
       expect(yesterdayText).toContain(["- [>] Projeto em progresso", "\t- [>] Filha em progresso"].join("\n"));
     } finally {
       vi.useRealTimers();
@@ -363,7 +363,7 @@ describe("memory vault integration", () => {
       const todayText = await files.read(paths.dailyPath(today));
       const yesterdayText = await files.read(paths.dailyPath(yesterday));
       expect(todayText).toContain("- [ ] Filha aberta");
-      expect(todayText).toContain("- [ ] Filha em progresso");
+      expect(todayText).toContain("- [/] Filha em progresso");
       expect(todayText).not.toContain("- [ ] Projeto");
       expect(yesterdayText).toContain(["- [>] Projeto", "\t- [>] Filha aberta", "\t- [>] Filha em progresso"].join("\n"));
     } finally {
