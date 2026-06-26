@@ -1,5 +1,5 @@
 import { Notice, TFile, type App } from "obsidian";
-import { toOpenTask } from "./task-serializer";
+import { withTaskStatus } from "./task-serializer";
 
 const TASK_RE = /^(\s*)- \[([^\]])\]\s+(.*)$/;
 
@@ -46,8 +46,24 @@ export class ScheduledTaskService {
     const view = leaf.view;
     if ("editor" in view) {
       const editor = (view as { editor: { setCursor: (pos: { line: number; ch: number }) => void; lineCount: () => number; getLine: (line: number) => string } }).editor;
-      const lastLine = editor.lineCount() - 1;
-      editor.setCursor({ line: lastLine, ch: editor.getLine(lastLine).length });
+      // Try to find MIGRADOS section or last task to position cursor for pasting
+      const lineCount = editor.lineCount();
+      let targetLine = lineCount - 1;
+      for (let i = lineCount - 1; i >= 0; i -= 1) {
+        const line = editor.getLine(i);
+        if (/^##\s+MIGRADOS\b/i.test(line)) {
+          // Position after MIGRADOS heading
+          targetLine = i + 1;
+          while (targetLine < lineCount && editor.getLine(targetLine).trim() === "") targetLine += 1;
+          break;
+        }
+        if (/^-\s+\[[^\]]+\]/.test(line)) {
+          // Position after last task
+          targetLine = i + 1;
+          break;
+        }
+      }
+      editor.setCursor({ line: Math.min(targetLine, lineCount - 1), ch: 0 });
     }
   }
 }
@@ -59,7 +75,8 @@ export function scheduledRootTasks(content: string): Array<{ key: string; clipbo
   for (let index = 0; index < lines.length; index += 1) {
     const match = lines[index].match(TASK_RE);
     if (!match || match[1].length !== 0 || match[2] !== "<" || !match[3].trim()) continue;
-    const block = [toOpenTask(lines[index])];
+    // Convert [<] to [ ] for the copied task, preserving all other markers
+    const block = [withTaskStatus(lines[index], " ")];
     for (let next = index + 1; next < lines.length; next += 1) {
       const child = lines[next];
       if (!child.trim()) break;
