@@ -8,7 +8,7 @@
 [![Obsidian](https://img.shields.io/badge/Obsidian-Plugin-7C3AED?logo=obsidian&logoColor=white)](https://obsidian.md)
 [![Status](https://img.shields.io/badge/Status-In%20Development-orange)]()
 [![pt-BR](https://img.shields.io/badge/i18n-pt--BR%20%7C%20en--US-green)]()
-[![Version](https://img.shields.io/badge/Version-0.1.2-blue)]()
+[![Version](https://img.shields.io/badge/Version-0.1.5-blue)]()
 
 </div>
 
@@ -57,9 +57,12 @@ RECURRENTS.md  →  Annual  →  Monthly  →  Weekly → Daily  →  Next day
 - `📅` (due date) carries over if a task goes past its day.
 - `⏳` (scheduled date) tasks that expire without completion are cancelled (`- [-]`) rather than carried forward.
 - `⏰` (reminder time) is always preserved.
+- `PEndes` (ephemeral) tasks are cancelled at end of day if still open — they don't carry forward.
+- `🔜` (persistent) tasks keep migrating between days until completed or cancelled.
 - Migrated tasks in the source are marked `- [>]`, keeping a clean audit trail.
 - **In-progress child tasks** (`[/]`) from previous days are carried forward with their parent.
 - **Task families**: completing a parent auto-completes open/in-progress children; completing all children auto-completes the parent (configurable).
+- **Orphaned migration detection**: if source has `[>]` tasks but the target is empty, tasks are reset to `[ ]` and re-migrated.
 
 ### Checkbox Status Menu
 
@@ -111,7 +114,7 @@ Automatically maintains `created` and `updated` properties in frontmatter on sav
 **Manual installation:**
 
 1. Download the latest release: `main.js`, `styles.css`, `manifest.json`.
-2. Copy the files to your vault at `.obsidian/plugins/obsidian-cascade/`.
+2. Copy the files to your vault at `.obsidian/plugins/cascade/`.
 3. Restart Obsidian.
 4. Go to **Settings → Community Plugins**, disable Safe Mode if needed, and enable **Cascade**.
 
@@ -144,6 +147,8 @@ Cascade reads and respects the Tasks plugin emoji format:
 | `⏳` | Scheduled date | Task is cancelled (`[-]`) if it reaches the next day open |
 | `🛫` | Start date | Used as the recurrence base date when no `📅` or `⏳` is present |
 | `⏰` | Reminder time | Always preserved, never modified |
+| `🔚` | Ephemeral | Cancelled at end of day if still open; does not carry forward |
+| `🔜` | Persistent | Keeps migrating between days until completed or cancelled |
 
 ---
 
