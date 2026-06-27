@@ -31,6 +31,9 @@ describe("TaskParser", () => {
 
   it("builds stable keys ignoring metadata", () => {
     expect(taskKey("- [ ] Pay bill #tasks 📅 2026-06-15 🔁 every month")).toBe("PAY BILL 📅");
+    expect(taskKey("- [ ] Campo 📅 2026-06-27 ⏰ 08:00 🔚 #tasks")).toBe("CAMPO 📅 ⏰ 08:00");
+    expect(taskKey("- [ ] Campo 📅 2026-06-27 ⏰ 08:00 #tasks")).toBe("CAMPO 📅 ⏰ 08:00");
+    expect(taskKey("- [ ] Campo 📅 2026-06-27 ⏰ 08:00 🔜 #tasks")).toBe("CAMPO 📅 ⏰ 08:00");
     expect(taskLooseKey("- [ ] Pay bill 123 📅 2026-06-16")).toBe("PAY BILL 123");
   });
 });

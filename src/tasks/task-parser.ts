@@ -226,6 +226,8 @@ function normalizedTaskKey(task: string, removeDateMarkers: boolean): string {
     .replace(/⏳\s*\d{4}-\d{2}-\d{2}/g, removeDateMarkers ? "" : "⏳")
     .replace(/[✅❌]\s*\d{4}-\d{2}-\d{2}/g, "")
     .replace(RECURRENCE_RE, "")
+    .replace(/\s*🔚\s*/g, "")
+    .replace(/\s*🔜\s*/g, "")
     .replace(/#[\w/-]+/g, "")
     .replace(/\s+/g, " ")
     .trim()
