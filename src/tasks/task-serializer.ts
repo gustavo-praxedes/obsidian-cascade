@@ -3,7 +3,7 @@ import { metadataDate, sectionBounds, taskKey, taskLooseKey, type TaskBlock } fr
 
 const CARRYABLE_STATUSES = new Set([" ", "/"]);
 
-const RECURRENCE_RE = /\s*🔁\s*every\b.*?(?=\s+(?:🏁|➕|🛫|⏳|📅|❌|✅|#[\w/-]+|\^[\w-]+)|$)/iu;
+const RECURRENCE_RE = /\s*🔁\s*every\b.*?(?=\s+(?:🔚|🔜|🏁|➕|🛫|⏳|📅|❌|✅|#[\w/-]+|\^[\w-]+)|$)/iu;
 
 const TIME_MARKER_RE = /\s*⏰\s*\d{1,2}:\d{2}/u;
 
@@ -59,10 +59,18 @@ export function withDueDate(line: string, date: Date): string {
   return replaceOrAppendDate(line, "📅", date);
 }
 
+export function moveTypeMarkersToEnd(line: string): string {
+  const markers: string[] = [];
+  let cleaned = String(line);
+  if (/🔚/u.test(cleaned)) { markers.push("🔚"); cleaned = cleaned.replace(/\s*🔚/gu, ""); }
+  if (/🔜/u.test(cleaned)) { markers.push("🔜"); cleaned = cleaned.replace(/\s*🔜/gu, ""); }
+  if (!markers.length) return line;
+  return `${cleaned} ${markers.join(" ")}`;
+}
+
 export function prepareRecurringTask(task: TaskBlock, date: Date): string {
-  // Strip only 🔁, preserve 🔚 and 🔜
   const stripped = stripRecurrence(toOpenTask(task));
-  return preserveTimeMarker(task.line, withOccurrenceDate(stripped, date));
+  return moveTypeMarkersToEnd(preserveTimeMarker(task.line, withOccurrenceDate(stripped, date)));
 }
 
 export function uniqueNewTasks(existing: TaskBlock[], incoming: TaskBlock[]): TaskBlock[] {
@@ -123,14 +131,14 @@ export function prepareForwardableMigratedBlock(block: string): string {
   let keepFollowingText = false;
   for (const [index, line] of lines.entries()) {
     if (index === 0) {
-      prepared.push(preserveTimeMarker(line, stripMarker(toOpenTask(line))));
+      prepared.push(preserveTimeMarker(line, stripRecurrence(toOpenTask(line))));
       keepFollowingText = true;
       continue;
     }
     const match = line.match(/^(\s*)-\s+\[([^\]])\]/);
     if (match) {
       keepFollowingText = CARRYABLE_STATUSES.has(match[2]);
-      if (keepFollowingText) prepared.push(preserveTimeMarker(line, stripMarker(toOpenTask(line))));
+      if (keepFollowingText) prepared.push(preserveTimeMarker(line, stripRecurrence(toOpenTask(line))));
       continue;
     }
     if (keepFollowingText && /^\s+/.test(line)) prepared.push(line);
@@ -144,14 +152,14 @@ export function prepareForwardableMigratedBlockPreservingStatus(block: string, o
   let keepFollowingText = false;
   for (const [index, line] of lines.entries()) {
     if (index === 0) {
-      prepared.push(preserveTimeMarker(line, stripMarker(withTaskStatus(line, originalStatus))));
+      prepared.push(preserveTimeMarker(line, stripRecurrence(withTaskStatus(line, originalStatus))));
       keepFollowingText = true;
       continue;
     }
     const match = line.match(/^(\s*)-\s+\[([^\]])\]/);
     if (match) {
       keepFollowingText = CARRYABLE_STATUSES.has(match[2]);
-      if (keepFollowingText) prepared.push(preserveTimeMarker(line, stripMarker(withTaskStatus(line, match[2]))));
+      if (keepFollowingText) prepared.push(preserveTimeMarker(line, stripRecurrence(withTaskStatus(line, match[2]))));
       continue;
     }
     if (keepFollowingText && /^\s+/.test(line)) prepared.push(line);

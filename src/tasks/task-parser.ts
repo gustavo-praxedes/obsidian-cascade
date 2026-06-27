@@ -10,7 +10,7 @@ export interface TaskBlock {
 
 const TASK_RE = /^(\s*)-\s+\[([^\]])\]\s+(.*)$/;
 const LIST_ITEM_RE = /^(\s*)-\s+(.*)$/;
-const RECURRENCE_RE = /\s*🔁\s*every\b.*?(?=\s+(?:🏁|➕|🛫|⏳|📅|❌|✅|#[\w/-]+|\^[\w-]+)|$)/iu;
+const RECURRENCE_RE = /\s*🔁\s*every\b.*?(?=\s+(?:🔚|🔜|🏁|➕|🛫|⏳|📅|❌|✅|#[\w/-]+|\^[\w-]+)|$)/iu;
 
 export function taskMatch(line: string): RegExpMatchArray | null {
   return line.match(TASK_RE);

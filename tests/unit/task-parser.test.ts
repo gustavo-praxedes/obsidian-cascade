@@ -74,18 +74,18 @@ describe("forwardable/ephemeral markers", () => {
     expect(stripMarker("- [ ] Sem marker")).toBe("- [ ] Sem marker");
   });
 
-  it("prepareForwardableMigratedBlock creates open occurrence without marker", () => {
+  it("prepareForwardableMigratedBlock preserves persistent/ephemeral markers", () => {
     const block = "- [ ] Estudar inglês 📅 2026-06-23 🔜";
     const result = prepareForwardableMigratedBlock(block);
-    expect(result).toBe("- [ ] Estudar inglês 📅 2026-06-23");
-    expect(result).not.toContain("🔜");
+    expect(result).toBe("- [ ] Estudar inglês 📅 2026-06-23 🔜");
+    expect(result).toContain("🔜");
   });
 
-  it("prepareForwardableMigratedBlockPreservingStatus preserves [/] status", () => {
+  it("prepareForwardableMigratedBlockPreservingStatus preserves [/] and markers", () => {
     const block = "- [/] Estudar inglês 📅 2026-06-23 🔜";
     const result = prepareForwardableMigratedBlockPreservingStatus(block, "/");
-    expect(result).toBe("- [/] Estudar inglês 📅 2026-06-23");
-    expect(result).not.toContain("🔜");
+    expect(result).toBe("- [/] Estudar inglês 📅 2026-06-23 🔜");
+    expect(result).toContain("🔜");
   });
 
   it("markEphemeralCancelledTaskBlockInContent cancels task and children", () => {

@@ -35,6 +35,7 @@ import {
   normalizeLogSpacing as normalizeLogTextSpacing,
   prepareForwardableMigratedBlock,
   prepareForwardableMigratedBlockPreservingStatus,
+  moveTypeMarkersToEnd,
   removeMigratedChildrenFromOpenBlocks,
   prepareRecurringTask,
   stripRecurrence,
@@ -59,7 +60,7 @@ export class MigrationService {
       ? prepareForwardableMigratedBlockPreservingStatus(task.block, task.status)
       : stripRecurrence(prepareForwardableMigratedBlock(task.block));
     const withDate = this.settings.taskSetCreatedDate ? withCreatedDate(prepared, new Date()) : prepared;
-    return withGlobalFilter(withDate, this.settings.taskGlobalFilter?.trim() ?? "");
+    return moveTypeMarkersToEnd(withGlobalFilter(withDate, this.settings.taskGlobalFilter?.trim() ?? ""));
   }
 
   private prepareCarriedBlock(task: TaskBlock): string {
@@ -67,7 +68,7 @@ export class MigrationService {
       ? prepareForwardableMigratedBlockPreservingStatus(task.block, task.status)
       : prepareForwardableMigratedBlock(task.block);
     const withDate = this.settings.taskSetCreatedDate ? withCreatedDate(prepared, new Date()) : prepared;
-    return withGlobalFilter(withDate, this.settings.taskGlobalFilter?.trim() ?? "");
+    return moveTypeMarkersToEnd(withGlobalFilter(withDate, this.settings.taskGlobalFilter?.trim() ?? ""));
   }
 
   private markTaskMigrated(content: string, task: TaskBlock): string {

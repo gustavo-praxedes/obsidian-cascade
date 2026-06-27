@@ -47,9 +47,9 @@ describe("⏰ time marker", () => {
     expect(prepareMigratedBlock(block)).toBe("- [ ] Tarefa anual ⏰ 08:00 #tasks");
   });
 
-  it("preserves time marker in prepareForwardableMigratedBlock", () => {
+  it("preserves time marker and persistent/ephemeral markers in prepareForwardableMigratedBlock", () => {
     const input = "- [ ] Tarefa 🔜 ⏰ 14:30 #tasks";
-    expect(prepareForwardableMigratedBlock(input)).toBe("- [ ] Tarefa ⏰ 14:30 #tasks");
+    expect(prepareForwardableMigratedBlock(input)).toBe("- [ ] Tarefa 🔜 ⏰ 14:30 #tasks");
   });
 
   it("preserves time marker in prepareForwardableMigratedBlockPreservingStatus", () => {
