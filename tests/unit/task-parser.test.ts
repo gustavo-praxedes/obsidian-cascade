@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractTasksWithSubtasks, isEphemeralTask, isOpenTask, isForwardableTask, taskKey, taskLooseKey } from "../../src/tasks/task-parser";
+import { extractAllRootTasks, extractTasksWithSubtasks, isEphemeralTask, isOpenTask, isForwardableTask, taskKey, taskLooseKey } from "../../src/tasks/task-parser";
 import {
   markEphemeralCancelledTaskBlockInContent,
   markOpenChildrenOfMigratedBlocks,
@@ -17,6 +17,16 @@ describe("TaskParser", () => {
     const tasks = extractTasksWithSubtasks("- [ ] Parent\n  - [ ] Child\n- [x] Done");
     expect(tasks).toHaveLength(1);
     expect(tasks[0].block).toContain("Child");
+  });
+
+  it("extractAllRootTasks includes completed and cancelled tasks", () => {
+    const content = "- [ ] Open\n- [x] Done\n- [-] Cancelled\n- [/] Progress\n  - [ ] Child";
+    const allTasks = extractAllRootTasks(content);
+    expect(allTasks).toHaveLength(4);
+    expect(allTasks.find((t) => t.status === " ")).toBeDefined();
+    expect(allTasks.find((t) => t.status === "x")).toBeDefined();
+    expect(allTasks.find((t) => t.status === "-")).toBeDefined();
+    expect(allTasks.find((t) => t.status === "/")).toBeDefined();
   });
 
   it("builds stable keys ignoring metadata", () => {

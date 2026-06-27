@@ -18,7 +18,7 @@ export class NoteService {
   async createAnnual(date = new Date()): Promise<TFile | null> {
     if (!this.settings.yearlyEnabled) return null;
     const path = this.paths.annualPath(date);
-    const existing = this.files.getFile(path) ?? this.files.findMarkdownByPredicate((f) => this.paths.isAnnualFile(f.basename, date));
+    const existing = this.files.getFile(path);
     const title = this.paths.annualBase(date);
     if (existing) {
       await this.repairIfNeeded(existing.path, "yearly", date);
@@ -35,7 +35,7 @@ export class NoteService {
     await this.createAnnual(date);
     if (!this.settings.monthlyEnabled) return null;
     const path = this.paths.monthlyPath(date);
-    const existing = this.files.getFile(path) ?? this.files.findMarkdownByPredicate((f) => this.paths.isMonthlyFile(f.basename, date));
+    const existing = this.files.getFile(path);
     const title = this.paths.monthlyBase(date);
     if (existing) {
       await this.repairIfNeeded(existing.path, "monthly", date);
@@ -52,7 +52,7 @@ export class NoteService {
     await this.createMonthly(date);
     if (!this.settings.weeklyEnabled) return null;
     const path = this.paths.weeklyPath(date);
-    const existing = this.files.getFile(path) ?? this.files.findMarkdownByPredicate((f) => this.paths.isWeeklyFile(f.basename, date));
+    const existing = this.files.getFile(path);
     const title = this.paths.weeklyBase(date);
     if (existing) {
       await this.repairIfNeeded(existing.path, "weekly", date);
@@ -68,7 +68,7 @@ export class NoteService {
   async createDaily(date = new Date()): Promise<TFile> {
     await this.createWeekly(date);
     const path = this.paths.dailyPath(date);
-    const existing = this.files.getFile(path) ?? this.files.findMarkdownByPredicate((f) => this.paths.isDailyFile(f.basename, date));
+    const existing = this.files.getFile(path);
     if (existing) {
       await this.repairIfNeeded(existing.path, "daily", date);
       return existing;

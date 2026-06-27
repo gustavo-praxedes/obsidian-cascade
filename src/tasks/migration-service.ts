@@ -7,6 +7,7 @@ import { PathService } from "../notes/path-service";
 import {
   dayHeadingPredicate,
   dueDate,
+  extractAllRootTasks,
   extractRecurringTasks,
   extractSectionTasks,
   extractTasksWithSubtasks,
@@ -31,6 +32,7 @@ import {
   markMigrated,
   markMigratedInSection,
   markMigratedTaskBlockInContent,
+  resetMigratedInSection,
   markOpenChildrenOfMigratedBlocks,
   normalizeLogSpacing as normalizeLogTextSpacing,
   prepareForwardableMigratedBlock,
@@ -261,11 +263,27 @@ export class MigrationService {
   async migrateAnnualToMonthly(date = new Date()): Promise<void> {
     const annualPath = this.paths.annualPath(date);
     const monthlyPath = this.paths.monthlyPath(date);
-    const annual = await this.files.read(annualPath);
+    let annual = await this.files.read(annualPath);
     let monthly = await this.files.read(monthlyPath);
     const info = this.paths.dateInfo(date);
     const pred = monthPredicate(info.monthName);
-    const pending = extractSectionTasks(annual, pred).filter((task) => isOpenTask(task));
+    let pending = extractSectionTasks(annual, pred).filter((task) => isOpenTask(task));
+
+    // Detect orphaned migrations: annual has [>] but monthly doesn't have these tasks
+    if (!pending.length) {
+      const allAnnualTasks = extractSectionTasks(annual, pred);
+      const migratedTasks = allAnnualTasks.filter(t => t.status === ">");
+      if (migratedTasks.length > 0) {
+        const monthlyHasTasks = migratedTasks.some(task => monthly.includes(task.text));
+        if (!monthlyHasTasks) {
+          // Orphaned migration detected: reset annual tasks to open
+          annual = resetMigratedInSection(annual, pred, migratedTasks);
+          await this.files.write(annualPath, annual);
+          pending = extractSectionTasks(annual, pred).filter((task) => isOpenTask(task));
+        }
+      }
+    }
+
     if (!pending.length) return;
 
     // All tasks (including ephemeral) should be instantiated in downstream files
@@ -424,7 +442,7 @@ export class MigrationService {
     for (const task of tasks) {
       for (const occurrence of this.recurrence.datesInMonthForTask(task.line, date)) {
         const prepared = this.prepareRecurring(task, occurrence);
-        const unique = uniqueNewPreparedTasks(extractTasksWithSubtasks(daily), [prepared]);
+        const unique = uniqueNewPreparedTasks(extractAllRootTasks(daily), [prepared]);
         if (unique.length) daily = insertAfterH1Compat(daily, unique);
       }
     }
@@ -443,7 +461,30 @@ export class MigrationService {
       const normalizedLine = normalizeText(line).toUpperCase();
       return normalizedLine.includes(`S-${pad2(info.week)}`);
     };
-    const weekTasks = extractSectionTasks(monthly, weekPred).filter(isOpenTask);
+    let weekTasks = extractSectionTasks(monthly, weekPred).filter(isOpenTask);
+    
+    // Detect orphaned migrations: monthly has [>] but weekly is empty
+    if (!weekTasks.length) {
+      const allWeekTasks = extractSectionTasks(monthly, weekPred);
+      const migratedTasks = allWeekTasks.filter(t => t.status === ">");
+      if (migratedTasks.length > 0) {
+        const { actualPath: weeklyPath } = await this.files.findOrCreateFile(
+          this.paths.weeklyPath(date),
+          this.paths.renderWeeklyLog(date),
+          (f) => this.paths.isWeeklyFile(f.basename, date),
+        );
+        const weeklyContent = await this.files.read(weeklyPath);
+        // Check if weekly has ANY task text from the migrated tasks
+        const weeklyHasTasks = migratedTasks.some(task => weeklyContent.includes(task.text));
+        if (!weeklyHasTasks) {
+          // Orphaned migration detected: reset monthly tasks to open
+          monthly = resetMigratedInSection(monthly, weekPred, migratedTasks);
+          await this.files.write(monthlyPath, monthly);
+          weekTasks = extractSectionTasks(monthly, weekPred).filter(isOpenTask);
+        }
+      }
+    }
+    
     if (!weekTasks.length) return;
     
     // Insert tasks into the weekly file's day sections
@@ -506,7 +547,7 @@ export class MigrationService {
     if (!dayTasks.length) return;
     
     const unique = uniqueNewPreparedTasks(
-      extractTasksWithSubtasks(daily),
+      extractAllRootTasks(daily),
       dayTasks.map((task) => this.prepareForwardedBlock(task)),
     );
     if (!unique.length) return;
@@ -561,7 +602,7 @@ export class MigrationService {
     const ephemeral = toCarry.filter(isEphemeralTask);
     const forwardable = toCarry.filter((task) => !isEphemeralTask(task));
     const unique = uniqueNewPreparedTasks(
-      extractTasksWithSubtasks(todayContent),
+      extractAllRootTasks(todayContent),
       forwardable.map((task) => this.prepareCarriedBlock(task)),
     );
     let updatedPrevious = previousContent;

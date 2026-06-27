@@ -44,6 +44,23 @@ export function extractTasksWithSubtasks(content: string): TaskBlock[] {
   return tasks.filter(isUsefulTask);
 }
 
+export function extractAllRootTasks(content: string): TaskBlock[] {
+  const lines = content.split(/\r?\n/);
+  const tasks: TaskBlock[] = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = lines[index].match(TASK_RE);
+    if (!match) continue;
+    if (match[1].length > 0) continue;
+    const block = [lines[index]];
+    for (let next = index + 1; next < lines.length; next += 1) {
+      if (TASK_RE.test(lines[next]) && indentation(lines[next]) <= indentation(lines[index])) break;
+      if (/^\s+/.test(lines[next]) && !/^\s*-\s+\[[x-]\]/i.test(lines[next])) block.push(lines[next]);
+    }
+    tasks.push({ line: lines[index], block: block.join("\n"), indent: match[1], status: match[2], text: match[3] });
+  }
+  return tasks;
+}
+
 export function extractRecurringTasks(content: string): TaskBlock[] {
   const taskItems = extractTasksWithSubtasks(content);
   const listItems = content

@@ -34,7 +34,13 @@ export default class CascadePlugin extends Plugin {
   private toggleCalendarCallback?: () => void;
 
   async onload(): Promise<void> {
+    const data = await this.loadData();
     await this.loadSettings();
+
+    // Auto-create data.json on first run so settings are visible and editable
+    if (!data) {
+      await this.saveSettings();
+    }
 
     const paths = new PathService(this.settings);
     const files = new FileService(this.app.vault);

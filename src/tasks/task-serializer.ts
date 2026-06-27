@@ -246,6 +246,10 @@ export function markMigratedInSection(content: string, heading: string | RegExp 
   return replaceTasks(content, heading, tasks, markMigrated);
 }
 
+export function resetMigratedInSection(content: string, heading: string | RegExp | ((line: string) => boolean), tasks: TaskBlock[]): string {
+  return replaceTasks(content, heading, tasks, toOpenTask);
+}
+
 export function markMigratedInRoot(content: string, tasks: TaskBlock[]): string {
   return tasks.reduce((current, task) => current.replace(task.line, markMigrated(task.line)), content);
 }
