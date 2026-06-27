@@ -59,7 +59,6 @@ export default class CascadePlugin extends Plugin {
     this.addRibbonIcon("calendar-check", this.i18n.t("openToday"), () => {
       void (async () => {
         await notes.openToday();
-        if (this.settings.runMigrationOnManualOpen) await migration.run();
       })().catch((error) => {
         console.error(error);
         new Notice(this.i18n.t("noticeOpenTodayFailed"));

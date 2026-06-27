@@ -66,6 +66,7 @@ export class CheckboxMenu {
   private showOverlay(target: CheckboxTarget): void {
     this.closeOverlay();
     const overlay = document.body.createDiv({ cls: "cascade-checkbox-menu-widget" });
+    overlay.style.visibility = "hidden";
     const list = overlay.createEl("ul");
     for (const status of this.statuses.menuStatuses()) {
       const item = list.createEl("li", {
@@ -81,14 +82,34 @@ export class CheckboxMenu {
     }
     this.overlay = overlay;
     this.positionOverlay(overlay, target.checkbox);
+    overlay.style.visibility = "";
     window.setTimeout(() => document.addEventListener("mousedown", this.closeOnOutsideClick, { capture: true, signal: this.abort.signal }), 0);
   }
 
   private positionOverlay(overlay: HTMLElement, target: HTMLElement): void {
-    const rect = target.getBoundingClientRect();
-    const top = Math.min(window.innerHeight - overlay.offsetHeight - 8, rect.bottom + 6);
-    const left = Math.min(window.innerWidth - overlay.offsetWidth - 8, Math.max(8, rect.left - 8));
-    overlay.style.top = `${Math.max(8, top)}px`;
+    const targetRect = target.getBoundingClientRect();
+    const menuWidth = overlay.offsetWidth;
+    const menuHeight = overlay.offsetHeight;
+    const margin = 8;
+
+    let top = targetRect.bottom + 6;
+    let left = targetRect.left - 8;
+
+    if (top + menuHeight > window.innerHeight - margin) {
+      top = targetRect.top - menuHeight - 6;
+    }
+    if (top < margin) {
+      top = margin;
+    }
+
+    if (left + menuWidth > window.innerWidth - margin) {
+      left = window.innerWidth - menuWidth - margin;
+    }
+    if (left < margin) {
+      left = margin;
+    }
+
+    overlay.style.top = `${top}px`;
     overlay.style.left = `${left}px`;
   }
 

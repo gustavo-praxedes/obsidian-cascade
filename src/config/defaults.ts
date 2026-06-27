@@ -32,6 +32,10 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
   language: "auto",
   startCascadeOnStartup: true,
 
+  agendaEnabled: true,
+  checkboxEnabled: true,
+  calendarEnabled: true,
+
   agendaRoot: "",
   openAnnualOnStartup: false,
   openMonthlyOnStartup: false,
@@ -59,7 +63,7 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
 
 
   runMigrationOnStartup: true,
-  runMigrationOnManualOpen: true,
+
   startupDelayMode: 0,
   startupDelayCustomSeconds: 0,
 

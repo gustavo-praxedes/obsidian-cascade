@@ -10,6 +10,11 @@ export class TasksSection implements SettingsSection {
   render(ctx: SectionContext): void {
     this.renderCard(ctx, "✅", ctx.t("sectionTasks"), () => {
       if (ctx.settings.migrationEnabled) {
+        new SettingBuilder(ctx)
+          .name(ctx.t("runMigrationOnStartup"))
+          .tooltip(ctx.t("tooltipRunMigrationOnStartup"))
+          .toggle("runMigrationOnStartup");
+
         const recurring = new SettingBuilder(ctx)
           .name(ctx.t("recurringTasksPathLabel"))
           .tooltip(ctx.t("tooltipRecurringTasksPath"))

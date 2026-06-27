@@ -1,3 +1,4 @@
+import { Setting } from "obsidian";
 import type { SectionContext, SettingsSection } from "../settings-section";
 import { SettingBuilder } from "../setting-builder";
 import { PathService } from "../../notes/path-service";
@@ -27,11 +28,31 @@ export class AgendaSection implements SettingsSection {
       }
     };
 
+    this.renderOpenOnStartupCards(ctx);
+
     this.renderCard(ctx, "📅", ctx.t("sectionAgenda"), () => {
       new SettingBuilder(ctx)
         .name(ctx.t("agendaRoot"))
         .tooltip(ctx.t("tooltipAgendaRoot"))
         .text("agendaRoot");
+
+      new SettingBuilder(ctx)
+        .name(ctx.t("yearlyEnabled"))
+        .tooltip(ctx.t("tooltipYearlyEnabled"))
+        .refresh()
+        .toggle("yearlyEnabled");
+
+      new SettingBuilder(ctx)
+        .name(ctx.t("monthlyEnabled"))
+        .tooltip(ctx.t("tooltipMonthlyEnabled"))
+        .refresh()
+        .toggle("monthlyEnabled");
+
+      new SettingBuilder(ctx)
+        .name(ctx.t("weeklyEnabled"))
+        .tooltip(ctx.t("tooltipWeeklyEnabled"))
+        .refresh()
+        .toggle("weeklyEnabled");
     });
 
     this.renderPeriodCard(ctx, "📆", ctx.t("sectionAnnual"), ctx.settings.yearlyEnabled, () => {
@@ -97,6 +118,62 @@ export class AgendaSection implements SettingsSection {
     });
   }
 
+  private renderOpenOnStartupCards(ctx: SectionContext): void {
+    const setting = new Setting(ctx.container).setName(ctx.t("openOnStartup"));
+
+    const keys = [
+      "none",
+      "openAnnualOnStartup",
+      "openMonthlyOnStartup",
+      "openWeeklyOnStartup",
+      "openDailyOnStartup",
+    ] as const;
+
+    const labels: Record<string, string> = {
+      none: ctx.t("none"),
+      openAnnualOnStartup: ctx.t("sectionAnnual"),
+      openMonthlyOnStartup: ctx.t("sectionMonthly"),
+      openWeeklyOnStartup: ctx.t("sectionWeekly"),
+      openDailyOnStartup: ctx.t("sectionDaily"),
+    };
+
+    const icons: Record<string, string> = {
+      none: "—",
+      openAnnualOnStartup: "📆",
+      openMonthlyOnStartup: "📅",
+      openWeeklyOnStartup: "📋",
+      openDailyOnStartup: "📝",
+    };
+
+    const activeKey =
+      (["openAnnualOnStartup", "openMonthlyOnStartup", "openWeeklyOnStartup", "openDailyOnStartup"] as const)
+        .find((k) => ctx.settings[k])
+        ?? "none";
+
+    const container = setting.controlEl.createDiv({ cls: "cascade-radio-cards" });
+
+    for (const key of keys) {
+      const isSelected = key === activeKey;
+      const card = container.createDiv({
+        cls: `cascade-radio-card${isSelected ? " is-selected" : ""}`,
+      });
+      card.createSpan({ cls: "cascade-radio-card__icon", text: icons[key] });
+      card.createSpan({ text: labels[key] });
+
+      card.addEventListener("click", async () => {
+        ctx.settings.openAnnualOnStartup = false;
+        ctx.settings.openMonthlyOnStartup = false;
+        ctx.settings.openWeeklyOnStartup = false;
+        ctx.settings.openDailyOnStartup = false;
+        if (key !== "none") {
+          (ctx.settings as any)[key] = true;
+        }
+        await ctx.save();
+        ctx.refresh();
+      });
+    }
+  }
+
   private renderPeriodCard(
     ctx: SectionContext,
     icon: string,
@@ -104,23 +181,18 @@ export class AgendaSection implements SettingsSection {
     enabled: boolean,
     renderContent: () => void,
   ): void {
+    if (!enabled) return;
+
     const card = ctx.container.createDiv({ cls: "cascade-card" });
     const header = card.createDiv({ cls: "cascade-card__header" });
     header.createSpan({ cls: "cascade-card__icon", text: icon });
     header.createSpan({ cls: "cascade-card__title", text: title });
     const body = card.createDiv({ cls: "cascade-card__body" });
 
-    if (enabled) {
-      const prev = ctx.container;
-      ctx.container = body;
-      renderContent();
-      ctx.container = prev;
-    } else {
-      body.createDiv({
-        cls: "cascade-dependent-hint",
-        text: ctx.t("dependentHintEnable").replace("{section}", title.toLowerCase()),
-      });
-    }
+    const prev = ctx.container;
+    ctx.container = body;
+    renderContent();
+    ctx.container = prev;
   }
 
   private renderCard(ctx: SectionContext, icon: string, title: string, render: () => void): void {

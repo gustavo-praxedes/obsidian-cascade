@@ -15,6 +15,12 @@ export function withDoneDate(line: string, date: Date): string {
   return replaceOrAppendDate(line, "✅", date);
 }
 
+export function withGlobalFilter(line: string, filter: string): string {
+  if (!filter) return line;
+  if (line.includes(filter)) return line;
+  return `${line} ${filter}`;
+}
+
 export function toOpenTask(task: TaskBlock | string): string {
   const line = typeof task === "string" ? task : task.line;
   return withTaskStatus(line, " ");
@@ -54,7 +60,9 @@ export function withDueDate(line: string, date: Date): string {
 }
 
 export function prepareRecurringTask(task: TaskBlock, date: Date): string {
-  return preserveTimeMarker(task.line, stripMarker(withOccurrenceDate(stripRecurrence(toOpenTask(task)), date)));
+  // Strip only 🔁, preserve 🔚 and 🔜
+  const stripped = stripRecurrence(toOpenTask(task));
+  return preserveTimeMarker(task.line, withOccurrenceDate(stripped, date));
 }
 
 export function uniqueNewTasks(existing: TaskBlock[], incoming: TaskBlock[]): TaskBlock[] {

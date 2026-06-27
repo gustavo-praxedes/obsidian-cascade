@@ -38,7 +38,6 @@ export function registerCommands(
     callback: async () => {
       try {
         await notes.openToday();
-        if (plugin.settings.runMigrationOnManualOpen) await migration.run();
       } catch (error) {
         console.error(error);
         new Notice(i18n.t("noticeOpenTodayFailed"));

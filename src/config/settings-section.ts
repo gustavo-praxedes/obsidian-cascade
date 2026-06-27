@@ -22,7 +22,6 @@ export interface SettingsSection {
 export const SECTIONS_META: { id: string; icon: string; labelKey: string }[] = [
   { id: "general", icon: "⚙️", labelKey: "sectionGeneral" },
   { id: "agenda", icon: "📅", labelKey: "sectionAgenda" },
-  { id: "migration", icon: "🔄", labelKey: "sectionMigration" },
   { id: "normalization", icon: "📝", labelKey: "sectionNormalization" },
   { id: "tasks", icon: "✅", labelKey: "sectionTasks" },
   { id: "checkbox", icon: "🏷️", labelKey: "sectionCheckbox" },
@@ -34,15 +33,17 @@ export const SECTIONS_META: { id: string; icon: string; labelKey: string }[] = [
 export function isSectionVisible(id: string, settings: CascadeSettings): boolean {
   switch (id) {
     case "general":
-    case "agenda":
-    case "checkbox":
-    case "calendar":
       return true;
-    case "migration":
+    case "agenda":
+      return settings.agendaEnabled;
     case "tasks":
       return settings.migrationEnabled;
     case "normalization":
       return settings.normalizerEnabled;
+    case "checkbox":
+      return settings.checkboxEnabled;
+    case "calendar":
+      return settings.calendarEnabled;
     case "frontmatter":
       return settings.frontmatterEnabled;
     case "advanced":

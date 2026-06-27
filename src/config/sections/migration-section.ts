@@ -12,10 +12,6 @@ export class MigrationSection implements SettingsSection {
         .name(ctx.t("runMigrationOnStartup"))
         .tooltip(ctx.t("tooltipRunMigrationOnStartup"))
         .toggle("runMigrationOnStartup");
-      new SettingBuilder(ctx)
-        .name(ctx.t("runMigrationOnManualOpen"))
-        .tooltip(ctx.t("tooltipRunMigrationOnManualOpen"))
-        .toggle("runMigrationOnManualOpen");
     });
   }
 

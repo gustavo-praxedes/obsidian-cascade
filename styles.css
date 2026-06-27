@@ -104,6 +104,7 @@
   height: 34px;
   justify-content: center;
   opacity: 0.6;
+  grid-column: 1;
 }
 
 .cascade-calendar__day {
@@ -226,19 +227,17 @@
   --menu-hover: var(--background-modifier-hover);
   background: var(--menu-bg);
   border: 1px solid var(--menu-border);
-  border-radius: 4px;
-  box-shadow: 0 2px 8px var(--background-modifier-box-shadow);
+  border-radius: var(--radius-s, 4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   box-sizing: border-box;
   display: flex;
-  left: 0;
-  padding: 4px 3px;
+  padding: 6px 4px;
   position: fixed;
-  top: 0;
-  z-index: 1000;
+  z-index: var(--z-modal, 10000);
 }
 
 .cascade-checkbox-menu-widget ul {
-  align-items: flex-start;
+  align-items: stretch;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -249,11 +248,14 @@
 
 .cascade-checkbox-menu-widget__item {
   align-items: center;
-  border-radius: 3px;
+  border-radius: var(--radius-s, 4px);
   cursor: pointer;
   display: flex;
+  gap: 6px;
   margin: 0;
-  padding: 2px;
+  padding: 5px 10px;
+  transition: background 0.1s ease;
+  white-space: nowrap;
 }
 
 .cascade-checkbox-menu-widget__item:hover,
@@ -261,8 +263,13 @@
   background: var(--menu-hover);
 }
 
+.cascade-checkbox-menu-widget__item.is-active {
+  font-weight: 600;
+}
+
 .cascade-checkbox-menu-widget .task-list-item-checkbox {
   margin: 0;
+  pointer-events: none;
 }
 
 /* ============================================
@@ -517,22 +524,18 @@
 
 .cascade-tooltip__content {
   display: none;
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
+  position: fixed;
   padding: 6px 10px;
   background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s, 4px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   color: var(--text-normal);
   font-size: 11px;
   font-weight: 400;
-  white-space: nowrap;
   max-width: 260px;
   white-space: normal;
-  z-index: 100;
+  z-index: var(--z-modal, 10000);
   pointer-events: none;
 }
 

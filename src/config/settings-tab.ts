@@ -5,7 +5,6 @@ import type { SettingsSection } from "./settings-section";
 
 import { GeneralSection } from "./sections/general-section";
 import { AgendaSection } from "./sections/agenda-section";
-import { MigrationSection } from "./sections/migration-section";
 import { NormalizationSection } from "./sections/normalization-section";
 import { TasksSection } from "./sections/tasks-section";
 import { CheckboxSection } from "./sections/checkbox-section";
@@ -16,7 +15,6 @@ import { AdvancedSection } from "./sections/advanced-section";
 const SECTION_CLASSES: Record<string, new () => SettingsSection> = {
   general: GeneralSection,
   agenda: AgendaSection,
-  migration: MigrationSection,
   normalization: NormalizationSection,
   tasks: TasksSection,
   checkbox: CheckboxSection,

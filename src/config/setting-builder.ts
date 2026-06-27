@@ -254,7 +254,19 @@ export class SettingBuilder {
     if (this._desc) s.setDesc(this._desc);
     if (this._tooltip) {
       const tip = s.nameEl.createSpan({ cls: "cascade-tooltip", text: "?" });
-      tip.createSpan({ cls: "cascade-tooltip__content", text: this._tooltip });
+      const content = tip.createSpan({ cls: "cascade-tooltip__content", text: this._tooltip });
+      tip.addEventListener("mouseenter", () => {
+        const rect = tip.getBoundingClientRect();
+        content.style.top = `${rect.bottom + 6}px`;
+        content.style.left = `${rect.left}px`;
+        const contentRect = content.getBoundingClientRect();
+        if (contentRect.right > window.innerWidth - 8) {
+          content.style.left = `${window.innerWidth - contentRect.width - 8}px`;
+        }
+        if (contentRect.left < 8) {
+          content.style.left = "8px";
+        }
+      });
     }
     return s;
   }

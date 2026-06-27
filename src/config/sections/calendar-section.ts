@@ -1,4 +1,3 @@
-import { Setting } from "obsidian";
 import type { SectionContext, SettingsSection } from "../settings-section";
 import { SettingBuilder } from "../setting-builder";
 
@@ -9,34 +8,30 @@ export class CalendarSection implements SettingsSection {
 
   render(ctx: SectionContext): void {
     this.renderCard(ctx, "📆", ctx.t("sectionCalendar"), () => {
-      new Setting(ctx.container)
-        .setName(ctx.t("calendarRibbonButton"))
-        .setDesc(ctx.t("tooltipCalendarRibbonButton"))
-        .addToggle((t) =>
-          t.setValue(ctx.settings.calendarShowRibbonButton).onChange(async (value) => {
-            ctx.settings.calendarShowRibbonButton = value;
-            await ctx.save();
-            ctx.plugin.updateCalendarRibbon();
-          }),
-        );
+      new SettingBuilder(ctx)
+        .name(ctx.t("calendarRibbonButton"))
+        .tooltip(ctx.t("tooltipCalendarRibbonButton"))
+        .refresh()
+        .toggle("calendarShowRibbonButton");
 
-      new Setting(ctx.container)
-        .setName(ctx.t("calendarFirstDayOfWeek"))
-        .setDesc(ctx.t("tooltipCalendarFirstDay"))
-        .addDropdown((d) =>
-          d
-            .addOption("0", ctx.t("calendarWeekdays").split(",")[0])
-            .addOption("1", ctx.t("calendarWeekdays").split(",")[1])
-            .setValue(String(ctx.settings.calendarFirstDayOfWeek))
-            .onChange(async (v) => {
-              ctx.settings.calendarFirstDayOfWeek = Number(v) as 0 | 1;
-              await ctx.save();
-            }),
-        );
+      new SettingBuilder(ctx)
+        .name(ctx.t("calendarFirstDayOfWeek"))
+        .tooltip(ctx.t("tooltipCalendarFirstDay"))
+        .refresh()
+        .dropdown("calendarFirstDayOfWeek", [
+          ["0", ctx.t("sunday")],
+          ["1", ctx.t("monday")],
+          ["2", ctx.t("tuesday")],
+          ["3", ctx.t("wednesday")],
+          ["4", ctx.t("thursday")],
+          ["5", ctx.t("friday")],
+          ["6", ctx.t("saturday")],
+        ]);
 
       new SettingBuilder(ctx)
         .name(ctx.t("calendarShowWeekNumber"))
         .tooltip(ctx.t("tooltipCalendarWeekNumber"))
+        .refresh()
         .toggle("calendarShowWeekNumber");
 
       new SettingBuilder(ctx)

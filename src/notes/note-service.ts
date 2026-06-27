@@ -18,7 +18,12 @@ export class NoteService {
   async createAnnual(date = new Date()): Promise<TFile | null> {
     if (!this.settings.yearlyEnabled) return null;
     const path = this.paths.annualPath(date);
+    const existing = this.files.getFile(path) ?? this.files.findMarkdownByPredicate((f) => this.paths.isAnnualFile(f.basename, date));
     const title = this.paths.annualBase(date);
+    if (existing) {
+      await this.repairIfNeeded(existing.path, "yearly", date);
+      return existing;
+    }
     const fallback = this.paths.renderAnnualLog(date);
     const content = await this.templates.render("yearly", path, fallback, this.paths.dateInfo(date), title);
     const file = await this.files.ensureFile(path, content);
@@ -30,7 +35,12 @@ export class NoteService {
     await this.createAnnual(date);
     if (!this.settings.monthlyEnabled) return null;
     const path = this.paths.monthlyPath(date);
+    const existing = this.files.getFile(path) ?? this.files.findMarkdownByPredicate((f) => this.paths.isMonthlyFile(f.basename, date));
     const title = this.paths.monthlyBase(date);
+    if (existing) {
+      await this.repairIfNeeded(existing.path, "monthly", date);
+      return existing;
+    }
     const fallback = this.paths.renderMonthlyLog(date);
     const content = await this.templates.render("monthly", path, fallback, this.paths.dateInfo(date), title);
     const file = await this.files.ensureFile(path, content);
@@ -42,7 +52,12 @@ export class NoteService {
     await this.createMonthly(date);
     if (!this.settings.weeklyEnabled) return null;
     const path = this.paths.weeklyPath(date);
+    const existing = this.files.getFile(path) ?? this.files.findMarkdownByPredicate((f) => this.paths.isWeeklyFile(f.basename, date));
     const title = this.paths.weeklyBase(date);
+    if (existing) {
+      await this.repairIfNeeded(existing.path, "weekly", date);
+      return existing;
+    }
     const fallback = this.paths.renderWeeklyLog(date);
     const content = await this.templates.render("weekly", path, fallback, this.paths.dateInfo(date), title);
     const file = await this.files.ensureFile(path, content);
@@ -52,12 +67,12 @@ export class NoteService {
 
   async createDaily(date = new Date()): Promise<TFile> {
     await this.createWeekly(date);
-    const existing = this.files.findMarkdownByBasenamePrefix(this.paths.dailyPrefix(date));
+    const path = this.paths.dailyPath(date);
+    const existing = this.files.getFile(path) ?? this.files.findMarkdownByPredicate((f) => this.paths.isDailyFile(f.basename, date));
     if (existing) {
       await this.repairIfNeeded(existing.path, "daily", date);
       return existing;
     }
-    const path = this.paths.dailyPath(date);
     const title = this.paths.dailyBase(date);
     const fallback = this.paths.renderDailyLog(date);
     const content = await this.templates.render("daily", path, fallback, this.paths.dateInfo(date), title);

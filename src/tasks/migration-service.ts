@@ -1,19 +1,18 @@
 import type { CascadeSettings } from "../config/schema";
 import type { LogService } from "../logging/log-service";
-import { addDays } from "../notes/path-service";
+import { addDays, normalizeText } from "../notes/path-service";
 import { FileService } from "../vault/file-service";
 import { LockService } from "../vault/lock-service";
 import { PathService } from "../notes/path-service";
 import {
   dayHeadingPredicate,
+  dueDate,
   extractRecurringTasks,
-  extractRootTasks,
   extractSectionTasks,
   extractTasksWithSubtasks,
   isEphemeralTask,
   isOpenTask,
   metadataDate,
-  migratedHeadingPredicate,
   monthPredicate,
   scheduledDate,
   startDate,
@@ -21,11 +20,16 @@ import {
   type TaskBlock,
 } from "./task-parser";
 import { RecurrenceService } from "./recurrence-service";
+
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
+}
 import {
   insertIntoSection,
   markCancelled,
   markEphemeralCancelledTaskBlockInContent,
   markMigrated,
+  markMigratedInSection,
   markMigratedTaskBlockInContent,
   markOpenChildrenOfMigratedBlocks,
   normalizeLogSpacing as normalizeLogTextSpacing,
@@ -37,6 +41,7 @@ import {
   uniqueNewPreparedTasks,
   withCreatedDate,
   withDoneDate,
+  withGlobalFilter,
 } from "./task-serializer";
 
 export class MigrationService {
@@ -53,14 +58,16 @@ export class MigrationService {
     const prepared = task.status === "/"
       ? prepareForwardableMigratedBlockPreservingStatus(task.block, task.status)
       : stripRecurrence(prepareForwardableMigratedBlock(task.block));
-    return this.settings.taskSetCreatedDate ? withCreatedDate(prepared, new Date()) : prepared;
+    const withDate = this.settings.taskSetCreatedDate ? withCreatedDate(prepared, new Date()) : prepared;
+    return withGlobalFilter(withDate, this.settings.taskGlobalFilter?.trim() ?? "");
   }
 
   private prepareCarriedBlock(task: TaskBlock): string {
     const prepared = task.status === "/"
       ? prepareForwardableMigratedBlockPreservingStatus(task.block, task.status)
       : prepareForwardableMigratedBlock(task.block);
-    return this.settings.taskSetCreatedDate ? withCreatedDate(prepared, new Date()) : prepared;
+    const withDate = this.settings.taskSetCreatedDate ? withCreatedDate(prepared, new Date()) : prepared;
+    return withGlobalFilter(withDate, this.settings.taskGlobalFilter?.trim() ?? "");
   }
 
   private markTaskMigrated(content: string, task: TaskBlock): string {
@@ -71,10 +78,15 @@ export class MigrationService {
     return updated;
   }
 
-  private matchesGlobalFilter(task: TaskBlock): boolean {
-    const filter = this.settings.taskGlobalFilter?.trim();
-    if (!filter) return true;
-    return task.line.includes(filter);
+  private matchesGlobalFilter(_task: TaskBlock): boolean {
+    return true;
+  }
+
+  private prepareRecurring(task: TaskBlock, occurrence: Date): string {
+    const prepared = this.settings.taskSetCreatedDate
+      ? withCreatedDate(prepareRecurringTask(task, occurrence), occurrence)
+      : prepareRecurringTask(task, occurrence);
+    return withGlobalFilter(prepared, this.settings.taskGlobalFilter?.trim() ?? "");
   }
 
   async run(date = new Date()): Promise<void> {
@@ -98,9 +110,14 @@ export class MigrationService {
       } else {
         await this.seedRecurringToDaily(date);
       }
-      await this.migrateMonthlyToDaily(date);
-      await this.migratePreviousDays(date);
-      await this.removeFutureScheduledFromDaily(date);
+      if (this.paths.weeklyEnabled() && this.settings.monthlyEnabled) {
+        await this.migrateMonthlyToWeekly(date);
+      }
+      if (this.settings.monthlyEnabled || this.paths.weeklyEnabled()) {
+        await this.migrateMonthlyToDaily(date);
+        await this.migratePreviousDays(date);
+        await this.removeFutureScheduledFromDaily(date);
+      }
       await this.normalizeLogSpacing(date);
       this.log.migration.info("Migration complete");
     });
@@ -142,6 +159,7 @@ export class MigrationService {
     }
 
     // Process ALL missing months (before current month only)
+    // NOTE: Do NOT call migrateAnnualToMonthly here - it will be called in the main run()
     if (this.settings.monthlyEnabled) {
       const startMonth = lastMonthly
         ? new Date(lastMonthly.getFullYear(), lastMonthly.getMonth() + 1, 1)
@@ -150,7 +168,7 @@ export class MigrationService {
       let cursor = startMonth;
       while (cursor < endMonth) {
         await this.ensureMonthly(cursor);
-        if (this.settings.yearlyEnabled) await this.migrateAnnualToMonthly(cursor);
+        // Do NOT migrate here - just ensure the file exists
         cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
       }
     }
@@ -162,33 +180,58 @@ export class MigrationService {
         : scanStart;
       let cursor = startWeek;
       while (cursor < date) {
-        await this.files.ensureFile(this.paths.weeklyPath(cursor), this.paths.renderWeeklyLog(cursor));
+        await this.files.findOrCreateFile(
+          this.paths.weeklyPath(cursor),
+          this.paths.renderWeeklyLog(cursor),
+          (f) => this.paths.isWeeklyFile(f.basename, cursor),
+        );
         cursor = addDays(cursor, 7);
       }
     }
 
     // Process ALL missing days (before today only)
+    // NOTE: Do NOT call migrateMonthlyToDaily here - it will be called in the main run()
     const startDay = lastDaily ? addDays(lastDaily, 1) : scanStart;
     let cursor = startDay;
     while (cursor < date) {
-      const dailyPath = this.paths.dailyPath(cursor);
-      if (!this.files.exists(dailyPath)) {
-        await this.files.write(dailyPath, this.paths.renderDailyLog(cursor));
-      }
-      await this.migrateMonthlyToDaily(cursor);
+      await this.files.findOrCreateFile(
+        this.paths.dailyPath(cursor),
+        this.paths.renderDailyLog(cursor),
+        (f) => this.paths.isDailyFile(f.basename, cursor),
+      );
       cursor = addDays(cursor, 1);
     }
   }
 
   private async ensureCascadeFiles(date: Date): Promise<void> {
     if (this.settings.yearlyEnabled) await this.files.ensureFile(this.paths.annualPath(date), this.paths.renderAnnualLog(date));
-    if (this.settings.monthlyEnabled) await this.files.ensureFile(this.paths.monthlyPath(date), this.paths.renderMonthlyLog(date));
-    if (this.paths.weeklyEnabled()) await this.files.ensureFile(this.paths.weeklyPath(date), this.paths.renderWeeklyLog(date));
-    await this.files.ensureFile(this.dailyPath(date), this.paths.renderDailyLog(date));
+    if (this.settings.monthlyEnabled) {
+      await this.files.findOrCreateFile(
+        this.paths.monthlyPath(date),
+        this.paths.renderMonthlyLog(date),
+        (f) => this.paths.isMonthlyFile(f.basename, date),
+      );
+    }
+    if (this.paths.weeklyEnabled()) {
+      await this.files.findOrCreateFile(
+        this.paths.weeklyPath(date),
+        this.paths.renderWeeklyLog(date),
+        (f) => this.paths.isWeeklyFile(f.basename, date),
+      );
+    }
+    await this.files.findOrCreateFile(
+      this.paths.dailyPath(date),
+      this.paths.renderDailyLog(date),
+      (f) => this.paths.isDailyFile(f.basename, date),
+    );
   }
 
   private async ensureMonthly(date: Date): Promise<void> {
-    await this.files.ensureFile(this.paths.monthlyPath(date), this.paths.renderMonthlyLog(date));
+    await this.files.findOrCreateFile(
+      this.paths.monthlyPath(date),
+      this.paths.renderMonthlyLog(date),
+      (f) => this.paths.isMonthlyFile(f.basename, date),
+    );
   }
 
   async seedAnnualFromRecurring(date = new Date()): Promise<void> {
@@ -201,7 +244,8 @@ export class MigrationService {
     for (const task of tasks) {
       for (let index = 0; index < 12; index += 1) {
         const monthDate = new Date(this.paths.operationalYear(date), index, 1);
-        if (!this.recurrence.datesInMonthForTask(task.line, monthDate).length) continue;
+        const dates = this.recurrence.datesInMonthForTask(task.line, monthDate);
+        if (!dates.length) continue;
         const pred = monthPredicate(this.paths.dateInfo(monthDate).monthName);
         if (hasUniqueLooseKey(task.line, counts)) {
           annual = annual.replace(task.line, task.line);
@@ -222,8 +266,9 @@ export class MigrationService {
     const pred = monthPredicate(info.monthName);
     const pending = extractSectionTasks(annual, pred).filter((task) => isOpenTask(task));
     if (!pending.length) return;
-    const ephemeral = pending.filter(isEphemeralTask);
-    const forwardable = pending.filter((task) => !isEphemeralTask(task));
+
+    // All tasks (including ephemeral) should be instantiated in downstream files
+    const forwardable = pending;
 
     // Separate recurring tasks (with 🔁) from regular forwardable tasks
     const recurring = forwardable.filter((task) => /🔁\s*every/i.test(task.text));
@@ -232,20 +277,19 @@ export class MigrationService {
     // Process recurring tasks: create instances for each occurrence in current month
     for (const task of recurring) {
       for (const occurrence of this.recurrence.datesInMonthForTask(task.line, date)) {
-        const prepared = this.settings.taskSetCreatedDate
-          ? withCreatedDate(prepareRecurringTask(task, occurrence), occurrence)
-          : prepareRecurringTask(task, occurrence);
+        const prepared = this.prepareRecurring(task, occurrence);
 
         if (this.paths.weeklyEnabled()) {
-          // When weekly enabled, insert into weekly log (which has day sections)
-          const weeklyPath = this.paths.weeklyPath(occurrence);
-          await this.files.ensureFile(weeklyPath, this.paths.renderWeeklyLog(occurrence));
-          const weekly = await this.files.read(weeklyPath);
-          const dayPred = dayHeadingPredicate(this.paths.dateInfo(occurrence).dd);
-          const unique = uniqueNewPreparedTasks(extractSectionTasks(weekly, dayPred), [prepared]);
-          if (unique.length) await this.files.write(weeklyPath, insertIntoSection(weekly, dayPred, unique));
+          // Insert into monthly file under the appropriate week link
+          const weekInfo = this.paths.dateInfo(occurrence);
+          const weekPred = (line: string) => {
+            const normalizedLine = normalizeText(line).toUpperCase();
+            return normalizedLine.includes(`S-${pad2(weekInfo.week)}`);
+          };
+          const unique = uniqueNewPreparedTasks(extractSectionTasks(monthly, weekPred), [prepared]);
+          if (unique.length) monthly = insertIntoSection(monthly, weekPred, unique);
         } else {
-          // When weekly disabled, insert into monthly day sections
+          // Insert into monthly file under the appropriate day heading
           const dayPred = dayHeadingPredicate(this.paths.dateInfo(occurrence).dd);
           const unique = uniqueNewPreparedTasks(extractSectionTasks(monthly, dayPred), [prepared]);
           if (unique.length) monthly = insertIntoSection(monthly, dayPred, unique);
@@ -261,8 +305,8 @@ export class MigrationService {
     monthly = insertAfterH1Compat(monthly, unique);
 
     let updatedAnnual = annual;
-    for (const task of ephemeral) updatedAnnual = markEphemeralCancelledTaskBlockInContent(updatedAnnual, task);
-    for (const task of forwardable) updatedAnnual = this.markTaskMigrated(updatedAnnual, task);
+    // Mark only tasks within the current month section as migrated
+    updatedAnnual = markMigratedInSection(updatedAnnual, pred, forwardable);
     await this.files.write(monthlyPath, monthly);
     await this.files.write(annualPath, updatedAnnual);
   }
@@ -274,8 +318,9 @@ export class MigrationService {
     const pred = monthPredicate(info.monthName);
     const pending = extractSectionTasks(annual, pred).filter((task) => isOpenTask(task));
     if (!pending.length) return;
-    const ephemeral = pending.filter(isEphemeralTask);
-    const forwardable = pending.filter((task) => !isEphemeralTask(task));
+
+    // All tasks (including ephemeral) should be instantiated in downstream files
+    const forwardable = pending;
     
     // Separate recurring tasks (with 🔁) from regular forwardable tasks
     const recurring = forwardable.filter((task) => /🔁\s*every/i.test(task.text));
@@ -284,12 +329,13 @@ export class MigrationService {
     // Process recurring tasks: create instances for each occurrence in current month
     for (const task of recurring) {
       for (const occurrence of this.recurrence.datesInMonthForTask(task.line, date)) {
-        const weeklyPath = this.paths.weeklyPath(occurrence);
-        await this.files.ensureFile(weeklyPath, this.paths.renderWeeklyLog(occurrence));
+        const { actualPath: weeklyPath } = await this.files.findOrCreateFile(
+          this.paths.weeklyPath(occurrence),
+          this.paths.renderWeeklyLog(occurrence),
+          (f) => this.paths.isWeeklyFile(f.basename, occurrence),
+        );
         const weekly = await this.files.read(weeklyPath);
-        const prepared = this.settings.taskSetCreatedDate
-          ? withCreatedDate(prepareRecurringTask(task, occurrence), occurrence)
-          : prepareRecurringTask(task, occurrence);
+        const prepared = this.prepareRecurring(task, occurrence);
         const dayPred = dayHeadingPredicate(this.paths.dateInfo(occurrence).dd);
         const unique = uniqueNewPreparedTasks(extractSectionTasks(weekly, dayPred), [prepared]);
         if (unique.length) await this.files.write(weeklyPath, insertIntoSection(weekly, dayPred, unique));
@@ -298,8 +344,11 @@ export class MigrationService {
     
     // Process regular forwardable tasks
     for (const task of regularForwardable) {
-      const weeklyPath = this.paths.weeklyPath(date);
-      await this.files.ensureFile(weeklyPath, this.paths.renderWeeklyLog(date));
+      const { actualPath: weeklyPath } = await this.files.findOrCreateFile(
+        this.paths.weeklyPath(date),
+        this.paths.renderWeeklyLog(date),
+        (f) => this.paths.isWeeklyFile(f.basename, date),
+      );
       const weekly = await this.files.read(weeklyPath);
       const prepared = this.prepareForwardedBlock(task);
       const dayPred = dayHeadingPredicate(info.dd);
@@ -308,8 +357,8 @@ export class MigrationService {
     }
     
     let updatedAnnual = annual;
-    for (const task of ephemeral) updatedAnnual = markEphemeralCancelledTaskBlockInContent(updatedAnnual, task);
-    for (const task of forwardable) updatedAnnual = this.markTaskMigrated(updatedAnnual, task);
+    // Mark only tasks within the current month section as migrated
+    updatedAnnual = markMigratedInSection(updatedAnnual, pred, forwardable);
     await this.files.write(annualPath, updatedAnnual);
   }
 
@@ -319,14 +368,16 @@ export class MigrationService {
     const tasks = extractRecurringTasks(source).filter((task) => this.matchesGlobalFilter(task));
     if (!tasks.length) return;
     const counts = looseKeyCounts(tasks.map((task) => task.line));
-    const targetPath = this.paths.monthlyPath(date);
+    const { actualPath: targetPath } = await this.files.findOrCreateFile(
+      this.paths.monthlyPath(date),
+      this.paths.renderMonthlyLog(date),
+      (f) => this.paths.isMonthlyFile(f.basename, date),
+    );
     let updated = await this.files.read(targetPath);
     for (const task of tasks) {
       for (const occurrence of this.recurrence.datesInMonthForTask(task.line, date)) {
         const pred = dayHeadingPredicate(this.paths.dateInfo(occurrence).dd);
-        const prepared = this.settings.taskSetCreatedDate
-          ? withCreatedDate(prepareRecurringTask(task, occurrence), occurrence)
-          : prepareRecurringTask(task, occurrence);
+        const prepared = this.prepareRecurring(task, occurrence);
         if (hasUniqueLooseKey(task.line, counts)) {
           // Replacement preserves the current task status when the operational copy already exists.
         }
@@ -345,13 +396,14 @@ export class MigrationService {
     const counts = looseKeyCounts(tasks.map((task) => task.line));
     for (const task of tasks) {
       for (const occurrence of this.recurrence.datesInMonthForTask(task.line, date)) {
-        await this.files.ensureFile(this.paths.weeklyPath(occurrence), this.paths.renderWeeklyLog(occurrence));
-        const targetPath = this.paths.weeklyPath(occurrence);
+        const { actualPath: targetPath } = await this.files.findOrCreateFile(
+          this.paths.weeklyPath(occurrence),
+          this.paths.renderWeeklyLog(occurrence),
+          (f) => this.paths.isWeeklyFile(f.basename, occurrence),
+        );
         const target = await this.files.read(targetPath);
         const pred = dayHeadingPredicate(this.paths.dateInfo(occurrence).dd);
-        const prepared = this.settings.taskSetCreatedDate
-          ? withCreatedDate(prepareRecurringTask(task, occurrence), occurrence)
-          : prepareRecurringTask(task, occurrence);
+        const prepared = this.prepareRecurring(task, occurrence);
         if (hasUniqueLooseKey(task.line, counts)) {
           // Replacement preserves the current task status when the operational copy already exists.
         }
@@ -370,9 +422,7 @@ export class MigrationService {
     let daily = await this.files.read(dailyPath);
     for (const task of tasks) {
       for (const occurrence of this.recurrence.datesInMonthForTask(task.line, date)) {
-        const prepared = this.settings.taskSetCreatedDate
-          ? withCreatedDate(prepareRecurringTask(task, occurrence), occurrence)
-          : prepareRecurringTask(task, occurrence);
+        const prepared = this.prepareRecurring(task, occurrence);
         const unique = uniqueNewPreparedTasks(extractTasksWithSubtasks(daily), [prepared]);
         if (unique.length) daily = insertAfterH1Compat(daily, unique);
       }
@@ -380,59 +430,114 @@ export class MigrationService {
     await this.files.write(dailyPath, daily);
   }
 
+  async migrateMonthlyToWeekly(date = new Date()): Promise<void> {
+    if (!this.paths.weeklyEnabled()) return;
+    
+    const monthlyPath = this.monthlyPath(date);
+    let monthly = await this.files.read(monthlyPath);
+    const info = this.paths.dateInfo(date);
+    
+    // Get tasks from the monthly file's week sections
+    const weekPred = (line: string) => {
+      const normalizedLine = normalizeText(line).toUpperCase();
+      return normalizedLine.includes(`S-${pad2(info.week)}`);
+    };
+    const weekTasks = extractSectionTasks(monthly, weekPred).filter(isOpenTask);
+    if (!weekTasks.length) return;
+    
+    // Insert tasks into the weekly file's day sections
+    const { actualPath: weeklyPath } = await this.files.findOrCreateFile(
+      this.paths.weeklyPath(date),
+      this.paths.renderWeeklyLog(date),
+      (f) => this.paths.isWeeklyFile(f.basename, date),
+    );
+    let weekly = await this.files.read(weeklyPath);
+    
+    const inserted: TaskBlock[] = [];
+    for (const task of weekTasks) {
+      // Determine which day this task belongs to based on its 📅 date
+      const taskDateMatch = task.text.match(/📅\s*(\d{4}-\d{2}-\d{2})/);
+      if (!taskDateMatch) continue;
+      const taskDate = new Date(taskDateMatch[1] + 'T12:00:00');
+      const taskInfo = this.paths.dateInfo(taskDate);
+      
+      const prepared = this.prepareRecurring(task, taskDate);
+      const dayPred = dayHeadingPredicate(taskInfo.dd);
+      const unique = uniqueNewPreparedTasks(extractSectionTasks(weekly, dayPred), [prepared]);
+      if (unique.length) {
+        weekly = insertIntoSection(weekly, dayPred, unique);
+        inserted.push(task);
+      }
+    }
+    
+    // Mark only the tasks that were actually inserted as migrated in monthly
+    if (inserted.length) {
+      monthly = markMigratedInSection(monthly, weekPred, inserted);
+      await this.files.write(monthlyPath, monthly);
+    }
+    await this.files.write(weeklyPath, weekly);
+  }
+
   async migrateMonthlyToDaily(date = new Date()): Promise<void> {
-    const monthlyPath = this.paths.monthlyPath(date);
-    const weeklyPath = this.paths.weeklyPath(date);
+    const monthlyPath = this.monthlyPath(date);
+    const weeklyPath = this.weeklyPath(date);
     const dailyPath = this.dailyPath(date);
-    const monthly = await this.files.read(monthlyPath);
+    let monthly = await this.files.read(monthlyPath);
     const weekly = this.paths.weeklyEnabled() ? await this.files.read(weeklyPath) : "";
     const daily = await this.files.read(dailyPath);
     const info = this.paths.dateInfo(date);
-    const rootTasks = extractRootTasks(monthly).filter(isOpenTask);
-    const migratedTasks = extractSectionTasks(monthly, migratedHeadingPredicate).filter(isOpenTask);
-    const weeklyRootTasks = this.paths.weeklyEnabled() ? extractRootTasks(weekly).filter(isOpenTask) : [];
-    const weeklyMigratedTasks = this.paths.weeklyEnabled() ? extractSectionTasks(weekly, migratedHeadingPredicate).filter(isOpenTask) : [];
-    const daySource = this.paths.weeklyEnabled() ? weekly : monthly;
-    const dayTasks = extractSectionTasks(daySource, dayHeadingPredicate(info.dd)).filter(
-      (task) => (task.status === " " || task.status === "/" || task.status === ">") && isDueForDay(task.line, date),
-    );
-    const weeklyDayTasks = this.paths.weeklyEnabled() && !this.settings.monthlyEnabled
-      ? extractSectionTasks(weekly, dayHeadingPredicate(info.dd)).filter(
-          (task) => (task.status === " " || task.status === "/") && isDueForDay(task.line, date),
-        )
-      : [];
-    const allTasks = [...rootTasks, ...migratedTasks, ...weeklyRootTasks, ...weeklyMigratedTasks, ...dayTasks, ...weeklyDayTasks];
-    const ephemeral = allTasks.filter(isEphemeralTask);
-    const forwardable = allTasks.filter((task) => !isEphemeralTask(task));
+    
+    // When weekly is enabled, read ONLY from weekly file's day section
+    // When weekly is disabled, read from monthly file's day sections
+    let dayTasks: TaskBlock[] = [];
+    let sourceFile: "weekly" | "monthly" = "monthly";
+    if (this.paths.weeklyEnabled()) {
+      sourceFile = "weekly";
+      dayTasks = extractSectionTasks(weekly, dayHeadingPredicate(info.dd)).filter(
+        (task) => (task.status === " " || task.status === "/" || task.status === ">") && isDueForDay(task.line, date),
+      );
+    } else {
+      dayTasks = extractSectionTasks(monthly, dayHeadingPredicate(info.dd)).filter(
+        (task) => (task.status === " " || task.status === "/" || task.status === ">") && isDueForDay(task.line, date),
+      );
+    }
+    
+    if (!dayTasks.length) return;
+    
     const unique = uniqueNewPreparedTasks(
       extractTasksWithSubtasks(daily),
-      forwardable.map((task) => this.prepareForwardedBlock(task)),
+      dayTasks.map((task) => this.prepareForwardedBlock(task)),
     );
-    if (!unique.length && !ephemeral.length) return;
-    if (unique.length) await this.files.write(dailyPath, insertAfterH1Compat(daily, unique));
-    let updatedMonthly = monthly;
-    let updatedWeekly = weekly;
-    for (const task of [...rootTasks, ...migratedTasks].filter((task) => (task.status === " " || task.status === "/") && unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)))) {
-      updatedMonthly = this.markTaskMigrated(updatedMonthly, task);
-    }
-    for (const task of [...rootTasks, ...migratedTasks].filter((task) => isEphemeralTask(task) && (task.status === " " || task.status === "/"))) {
-      updatedMonthly = markEphemeralCancelledTaskBlockInContent(updatedMonthly, task);
-    }
-    for (const task of [...weeklyRootTasks, ...weeklyMigratedTasks, ...dayTasks].filter(
+    if (!unique.length) return;
+    await this.files.write(dailyPath, insertAfterH1Compat(daily, unique));
+    
+    // Mark tasks as migrated in the source file using section-scoped marking
+    const dayPred = dayHeadingPredicate(info.dd);
+    const tasksToMark = dayTasks.filter(
       (task) => (task.status === " " || task.status === "/") && unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)),
-    )) {
-      updatedWeekly = this.markTaskMigrated(updatedWeekly, task);
+    );
+    
+    if (sourceFile === "weekly") {
+      let updatedWeekly = weekly;
+      updatedWeekly = markMigratedInSection(updatedWeekly, dayPred, tasksToMark);
+      // Cancel ephemeral tasks that are still open
+      for (const task of dayTasks.filter(
+        (task) => isEphemeralTask(task) && (task.status === " " || task.status === "/"),
+      )) {
+        updatedWeekly = markEphemeralCancelledTaskBlockInContent(updatedWeekly, task);
+      }
+      await this.files.write(weeklyPath, updatedWeekly);
+    } else {
+      let updatedMonthly = monthly;
+      updatedMonthly = markMigratedInSection(updatedMonthly, dayPred, tasksToMark);
+      // Cancel ephemeral tasks that are still open
+      for (const task of dayTasks.filter(
+        (task) => isEphemeralTask(task) && (task.status === " " || task.status === "/"),
+      )) {
+        updatedMonthly = markEphemeralCancelledTaskBlockInContent(updatedMonthly, task);
+      }
+      await this.files.write(monthlyPath, updatedMonthly);
     }
-    for (const task of [...weeklyRootTasks, ...weeklyMigratedTasks, ...dayTasks].filter((task) => isEphemeralTask(task) && (task.status === " " || task.status === "/"))) {
-      updatedWeekly = markEphemeralCancelledTaskBlockInContent(updatedWeekly, task);
-    }
-    for (const task of weeklyDayTasks.filter(
-      (task) => unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)),
-    )) {
-      updatedWeekly = this.markTaskMigrated(updatedWeekly, task);
-    }
-    if (this.settings.monthlyEnabled) await this.files.write(monthlyPath, updatedMonthly);
-    if (this.paths.weeklyEnabled()) await this.files.write(weeklyPath, updatedWeekly);
   }
 
   async migratePreviousDays(date = new Date()): Promise<void> {
@@ -496,14 +601,14 @@ export class MigrationService {
       const normalizedDaily = normalizeLogTextSpacing(removeMigratedChildrenFromOpenBlocks(daily));
       if (normalizedDaily !== daily) await this.files.write(dailyPath, normalizedDaily);
     }
-    const monthlyPath = this.paths.monthlyPath(date);
+    const monthlyPath = this.monthlyPath(date);
     const monthly = await this.files.read(monthlyPath);
     if (monthly) {
       const normalizedMonthly = normalizeLogTextSpacing(monthly);
       if (normalizedMonthly !== monthly) await this.files.write(monthlyPath, normalizedMonthly);
     }
     if (this.paths.weeklyEnabled()) {
-      const weeklyPath = this.paths.weeklyPath(date);
+      const weeklyPath = this.weeklyPath(date);
       const weekly = await this.files.read(weeklyPath);
       if (weekly) {
         const normalizedWeekly = normalizeLogTextSpacing(weekly);
@@ -513,7 +618,21 @@ export class MigrationService {
   }
 
   private dailyPath(date: Date): string {
-    return this.files.findMarkdownByBasenamePrefix(this.paths.dailyPrefix(date))?.path ?? this.paths.dailyPath(date);
+    const path = this.paths.dailyPath(date);
+    const existing = this.files.getFile(path) ?? this.files.findMarkdownByPredicate((f) => this.paths.isDailyFile(f.basename, date));
+    return existing?.path ?? path;
+  }
+
+  private weeklyPath(date: Date): string {
+    const path = this.paths.weeklyPath(date);
+    const existing = this.files.getFile(path) ?? this.files.findMarkdownByPredicate((f) => this.paths.isWeeklyFile(f.basename, date));
+    return existing?.path ?? path;
+  }
+
+  private monthlyPath(date: Date): string {
+    const path = this.paths.monthlyPath(date);
+    const existing = this.files.getFile(path) ?? this.files.findMarkdownByPredicate((f) => this.paths.isMonthlyFile(f.basename, date));
+    return existing?.path ?? path;
   }
 
 }
@@ -549,8 +668,10 @@ function separateTaskBlocks(lines: string[]): string[] {
 }
 
 function isDueForDay(line: string, date: Date): boolean {
+  const due = dueDate(line);
   const scheduled = scheduledDate(line);
   const start = startDate(line);
+  if (due && !sameDay(due, date)) return false;
   if (scheduled && !sameDay(scheduled, date)) return false;
   if (start && start > startOfDay(date)) return false;
   return true;

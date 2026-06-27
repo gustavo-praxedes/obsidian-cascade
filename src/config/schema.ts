@@ -29,6 +29,10 @@ export interface CascadeSettings {
   language: CascadeLanguage;
   startCascadeOnStartup: boolean;
 
+  agendaEnabled: boolean;
+  checkboxEnabled: boolean;
+  calendarEnabled: boolean;
+
   agendaRoot: string;
   openAnnualOnStartup: boolean;
   openMonthlyOnStartup: boolean;
@@ -56,7 +60,7 @@ export interface CascadeSettings {
 
 
   runMigrationOnStartup: boolean;
-  runMigrationOnManualOpen: boolean;
+
   startupDelayMode: 0 | 5 | 10 | 30 | "custom";
   startupDelayCustomSeconds: number;
 
@@ -81,7 +85,7 @@ export interface CascadeSettings {
   essentialStatuses: StatusDef[];
   customStatuses: StatusDef[];
 
-  calendarFirstDayOfWeek: 0 | 1;
+  calendarFirstDayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   calendarShowWeekNumber: boolean;
   calendarShowRibbonButton: boolean;
   calendarOpenInNewLeaf: boolean;

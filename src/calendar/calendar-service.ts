@@ -45,7 +45,7 @@ export class CalendarService {
 
     const result =
       this.files.exists(this.paths.dailyPath(date)) ||
-      this.vault.getMarkdownFiles().some((f) => f.basename.startsWith(this.paths.dailyPrefix(date)));
+      this.vault.getMarkdownFiles().some((f) => this.paths.isDailyFile(f.basename, date));
     this.hasDailyCache.set(key, result);
     return result;
   }

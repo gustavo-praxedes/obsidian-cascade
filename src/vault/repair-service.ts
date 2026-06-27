@@ -15,6 +15,10 @@ export class RepairService {
     const info = this.paths.dateInfo(date);
     const lines = splitLines(content);
     if (!content.trim() || !lines.some((line) => /^#\s+/.test(line))) return false;
+    if (this.paths.weeklyEnabled()) {
+      const weeks = monthWeekKeys(date, this.paths);
+      return weeks.every((key) => lines.some((line) => matchesWeekHeading(line, key)));
+    }
     const daysInMonth = new Date(info.year, info.month, 0).getDate();
     for (let day = 1; day <= daysInMonth; day += 1) {
       if (!lines.some((line) => matchesDayHeading(line, String(day).padStart(2, "0")))) return false;
@@ -60,8 +64,33 @@ export class RepairService {
   repairMonthlyLog(content: string, date: Date): string {
     if (this.hasMonthlyStructure(content, date)) return content;
     const info = this.paths.dateInfo(date);
-    const daysInMonth = new Date(info.year, info.month, 0).getDate();
     const lines = splitLines(content);
+
+    if (this.paths.weeklyEnabled()) {
+      const weeks = monthWeekKeys(date, this.paths);
+      const byWeek = new Map<string, string[]>();
+      for (const key of weeks) byWeek.set(key, []);
+      const recovered: string[] = [];
+      const firstSection = lines.findIndex((line) => /^##\s+/.test(line));
+      addBlocks(recovered, taskBlocksInRange(lines, 0, firstSection === -1 ? lines.length : firstSection));
+
+      for (let index = 0; index < lines.length; index += 1) {
+        if (!/^##\s+/.test(lines[index])) continue;
+        const end = sectionEnd(lines, index);
+        const blocks = taskBlocksInRange(lines, index + 1, end);
+        const week = weeks.find((key) => matchesWeekHeading(lines[index], key));
+        addBlocks(week ? byWeek.get(week)! : recovered, blocks);
+        index = end - 1;
+      }
+
+      let repaired = this.paths.renderMonthlyLog(date);
+      for (const key of weeks) {
+        repaired = insertBlocksIntoSection(repaired, (line) => matchesWeekHeading(line, key), byWeek.get(key) ?? []);
+      }
+      return appendRecovered(repaired, recovered);
+    }
+
+    const daysInMonth = new Date(info.year, info.month, 0).getDate();
     const byDay = new Map<string, string[]>();
     for (let day = 1; day <= daysInMonth; day += 1) byDay.set(String(day).padStart(2, "0"), []);
     const recovered: string[] = [];
@@ -191,6 +220,34 @@ function matchesDayHeading(line: string, day: string): boolean {
   const oldRe = new RegExp(`^##\\s+${escapeRegExp(day)}\\b`);
   const aliasRe = new RegExp(`^##\\s+\\[\\[[^\\]]+\\|${escapeRegExp(day)}(?:\\s+-|\\]\\])`);
   return oldRe.test(normalizedLine) || aliasRe.test(normalizedLine);
+}
+
+function matchesWeekHeading(line: string, weekKey: string): boolean {
+  const normalizedLine = normalizeText(line).toUpperCase();
+  const escaped = escapeRegExp(weekKey);
+  const aliasRe = new RegExp(`^##\\s+\\[\\[[^\\]]+\\|${escaped}\\]\\]\\s*$`);
+  return normalizedLine.includes(escaped) || aliasRe.test(normalizedLine);
+}
+
+function monthWeekKeys(date: Date, paths: PathService): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const current = new Date(year, month, day);
+    const weekInfo = paths.dateInfo(current);
+    const key = `S-${pad2(weekInfo.week)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(key);
+  }
+  return result;
+}
+
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
 }
 
 function normalizeText(value: string): string {

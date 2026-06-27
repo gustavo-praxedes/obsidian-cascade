@@ -9,6 +9,7 @@ export interface TaskBlock {
 }
 
 const TASK_RE = /^(\s*)-\s+\[([^\]])\]\s+(.*)$/;
+const LIST_ITEM_RE = /^(\s*)-\s+(.*)$/;
 const RECURRENCE_RE = /\s*🔁\s*every\b.*?(?=\s+(?:🏁|➕|🛫|⏳|📅|❌|✅|#[\w/-]+|\^[\w-]+)|$)/iu;
 
 export function taskMatch(line: string): RegExpMatchArray | null {
@@ -44,7 +45,16 @@ export function extractTasksWithSubtasks(content: string): TaskBlock[] {
 }
 
 export function extractRecurringTasks(content: string): TaskBlock[] {
-  return extractTasksWithSubtasks(content).filter((task) => /🔁\s*every/i.test(task.block));
+  const taskItems = extractTasksWithSubtasks(content);
+  const listItems = content
+    .split(/\r?\n/)
+    .filter((line) => LIST_ITEM_RE.test(line) && !TASK_RE.test(line))
+    .map((line) => {
+      const match = line.match(LIST_ITEM_RE)!;
+      const checkboxLine = `${match[1]}- [ ] ${match[2]}`;
+      return { line: checkboxLine, block: checkboxLine, indent: match[1], status: " ", text: match[2] };
+    });
+  return [...taskItems, ...listItems].filter((task) => /🔁\s*every/i.test(task.block));
 }
 
 export function extractRootTasks(content: string): TaskBlock[] {
@@ -167,7 +177,7 @@ export function monthPredicate(monthName: string): (line: string) => boolean {
 export function dayHeadingPredicate(day: string): (line: string) => boolean {
   const escapedDay = escapeRegExp(day);
   const oldRe = new RegExp(`^##\\s+${escapedDay}\\b`);
-  const aliasRe = new RegExp(`^##\\s+\\[\\[[^\\]]+\\|${escapedDay}(?:\\s+-|\\]\\])`);
+  const aliasRe = new RegExp(`^##\\s+\\[\\[[^\\]\\|]+\\|${escapedDay}(?:\\s+-\\s+[^\\]]+|\\]\\])`);
   return (line) => {
     const normalizedLine = normalizeText(line).toUpperCase();
     return oldRe.test(normalizedLine) || aliasRe.test(normalizedLine);

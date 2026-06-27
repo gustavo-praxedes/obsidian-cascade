@@ -134,6 +134,22 @@ export class PathService {
     return `${info.yyyy}${info.mm}${info.dd}`;
   }
 
+  isAnnualFile(basename: string, date: Date): boolean {
+    return basename === this.annualBase(date);
+  }
+
+  isMonthlyFile(basename: string, date: Date): boolean {
+    return basename === this.monthlyBase(date);
+  }
+
+  isWeeklyFile(basename: string, date: Date): boolean {
+    return basename === this.weeklyBase(date);
+  }
+
+  isDailyFile(basename: string, date: Date): boolean {
+    return basename === this.dailyBase(date);
+  }
+
   renderAnnualLog(date = new Date()): string {
     const year = this.operationalYear(date);
     const created = isoMinute();

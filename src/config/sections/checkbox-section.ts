@@ -10,6 +10,7 @@ export class CheckboxSection implements SettingsSection {
     this.renderCard(ctx, "🏷️", ctx.t("sectionCheckbox"), () => {
       this.renderEssentialStatuses(ctx);
       this.renderCustomStatuses(ctx);
+      this.renderDisabledStatuses(ctx);
       this.renderAddStatusForm(ctx);
     });
   }
@@ -30,11 +31,15 @@ export class CheckboxSection implements SettingsSection {
   }
 
   private renderCustomStatuses(ctx: SectionContext): void {
+    const active = ctx.settings.customStatuses.filter((s) => s.showInMenu !== false);
+    if (active.length === 0) return;
+
     const label = ctx.container.createDiv({ cls: "cascade-dependent-hint" });
     label.textContent = ctx.t("statusAccessoryDesc");
 
     const grid = ctx.container.createDiv({ cls: "cascade-status-grid" });
-    for (const [index, status] of ctx.settings.customStatuses.entries()) {
+    for (const status of active) {
+      const index = ctx.settings.customStatuses.indexOf(status);
       const card = grid.createDiv({ cls: "cascade-status-card" });
       card.createSpan({ cls: "cascade-status-card__checkbox" }).appendChild(this.renderCheckboxSnippet(status.symbol));
 
@@ -93,15 +98,57 @@ export class CheckboxSection implements SettingsSection {
       toggle.addEventListener("change", async () => {
         ctx.settings.customStatuses[index] = { ...status, showInMenu: toggle.checked };
         await ctx.save();
+        ctx.refresh();
       });
 
-      const deleteBtn = actions.createEl("button", {
+      const disableBtn = actions.createEl("button", {
+        cls: "cascade-row-delete",
+        text: "⊘",
+        attr: { "aria-label": ctx.t("disableStatus") },
+      });
+      disableBtn.addEventListener("click", async () => {
+        ctx.settings.customStatuses[index] = { ...status, showInMenu: false };
+        await ctx.save();
+        ctx.refresh();
+      });
+    }
+  }
+
+  private renderDisabledStatuses(ctx: SectionContext): void {
+    const disabled = ctx.settings.customStatuses.filter((s) => s.showInMenu === false);
+    if (disabled.length === 0) return;
+
+    const label = ctx.container.createDiv({ cls: "cascade-dependent-hint" });
+    label.textContent = ctx.t("statusDisabledDesc");
+
+    const grid = ctx.container.createDiv({ cls: "cascade-status-grid" });
+    for (const status of disabled) {
+      const realIndex = ctx.settings.customStatuses.indexOf(status);
+      const card = grid.createDiv({ cls: "cascade-status-card" });
+      card.createSpan({ cls: "cascade-status-card__checkbox" }).appendChild(this.renderCheckboxSnippet(status.symbol));
+
+      const info = card.createDiv({ cls: "cascade-status-card__info" });
+      info.createDiv({ cls: "cascade-status-card__label", text: status.label });
+      info.createDiv({ cls: "cascade-status-card__meta", text: `[${status.symbol}]` });
+
+      const actions = card.createDiv({ cls: "cascade-status-card__actions" });
+      const enableBtn = actions.createEl("button", {
+        cls: "cascade-settings-btn",
+        text: ctx.t("enable"),
+      });
+      enableBtn.addEventListener("click", async () => {
+        ctx.settings.customStatuses[realIndex] = { ...status, showInMenu: true };
+        await ctx.save();
+        ctx.refresh();
+      });
+
+      const removeBtn = actions.createEl("button", {
         cls: "cascade-row-delete",
         text: "✕",
         attr: { "aria-label": ctx.t("removeStatus") },
       });
-      deleteBtn.addEventListener("click", async () => {
-        ctx.settings.customStatuses.splice(index, 1);
+      removeBtn.addEventListener("click", async () => {
+        ctx.settings.customStatuses.splice(realIndex, 1);
         await ctx.save();
         ctx.refresh();
       });

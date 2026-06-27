@@ -9,7 +9,6 @@ export class GeneralSection implements SettingsSection {
 
   render(ctx: SectionContext): void {
     this.renderGeneral(ctx);
-    this.renderAgendaOverview(ctx);
     this.renderFeatures(ctx);
   }
 
@@ -70,110 +69,50 @@ export class GeneralSection implements SettingsSection {
     }
   }
 
-  private renderAgendaOverview(ctx: SectionContext): void {
-    this.renderCard(ctx, "📅", ctx.t("sectionAgenda"), () => {
-      this.renderOpenOnStartupCards(ctx);
-
-      new SettingBuilder(ctx)
-        .name(ctx.t("agendaRoot"))
-        .tooltip(ctx.t("tooltipAgendaRoot"))
-        .text("agendaRoot");
-
-      new SettingBuilder(ctx)
-        .name(ctx.t("yearlyEnabled"))
-        .tooltip(ctx.t("tooltipYearlyEnabled"))
-        .toggle("yearlyEnabled");
-
-      new SettingBuilder(ctx)
-        .name(ctx.t("monthlyEnabled"))
-        .tooltip(ctx.t("tooltipMonthlyEnabled"))
-        .toggle("monthlyEnabled");
-    });
-  }
-
   private renderFeatures(ctx: SectionContext): void {
     this.renderCard(ctx, "🎛️", ctx.t("sectionFeatures"), () => {
       new SettingBuilder(ctx)
-        .name(ctx.t("weeklyEnabled"))
-        .tooltip(ctx.t("tooltipWeeklyEnabled"))
-        .toggle("weeklyEnabled");
+        .name(ctx.t("agendaEnabled"))
+        .tooltip(ctx.t("tooltipAgendaEnabled"))
+        .refresh()
+        .toggle("agendaEnabled");
+
+      new SettingBuilder(ctx)
+        .name(ctx.t("checkboxEnabled"))
+        .tooltip(ctx.t("tooltipCheckboxEnabled"))
+        .refresh()
+        .toggle("checkboxEnabled");
+
+      new SettingBuilder(ctx)
+        .name(ctx.t("calendarEnabled"))
+        .tooltip(ctx.t("tooltipCalendarEnabled"))
+        .refresh()
+        .toggle("calendarEnabled");
 
       new SettingBuilder(ctx)
         .name(ctx.t("normalizerEnabled"))
         .tooltip(ctx.t("tooltipNormalizerEnabled"))
+        .refresh()
         .toggle("normalizerEnabled");
 
       new SettingBuilder(ctx)
         .name(ctx.t("migrationEnabled"))
         .tooltip(ctx.t("tooltipMigrationEnabled"))
+        .refresh()
         .toggle("migrationEnabled");
 
       new SettingBuilder(ctx)
         .name(ctx.t("frontmatterEnabled"))
         .tooltip(ctx.t("tooltipFrontmatterEnabled"))
+        .refresh()
         .toggle("frontmatterEnabled");
 
       new SettingBuilder(ctx)
         .name(ctx.t("loggingEnabled"))
         .tooltip(ctx.t("tooltipLoggingEnabled"))
+        .refresh()
         .toggle("loggingEnabled");
     });
-  }
-
-  private renderOpenOnStartupCards(ctx: SectionContext): void {
-    const setting = new Setting(ctx.container).setName(ctx.t("openOnStartup"));
-
-    const keys = [
-      "none",
-      "openAnnualOnStartup",
-      "openMonthlyOnStartup",
-      "openWeeklyOnStartup",
-      "openDailyOnStartup",
-    ] as const;
-
-    const labels: Record<string, string> = {
-      none: ctx.t("none"),
-      openAnnualOnStartup: ctx.t("sectionAnnual"),
-      openMonthlyOnStartup: ctx.t("sectionMonthly"),
-      openWeeklyOnStartup: ctx.t("sectionWeekly"),
-      openDailyOnStartup: ctx.t("sectionDaily"),
-    };
-
-    const icons: Record<string, string> = {
-      none: "—",
-      openAnnualOnStartup: "📆",
-      openMonthlyOnStartup: "📅",
-      openWeeklyOnStartup: "📋",
-      openDailyOnStartup: "📝",
-    };
-
-    const activeKey =
-      (["openAnnualOnStartup", "openMonthlyOnStartup", "openWeeklyOnStartup", "openDailyOnStartup"] as const)
-        .find((k) => ctx.settings[k])
-        ?? "none";
-
-    const container = setting.controlEl.createDiv({ cls: "cascade-radio-cards" });
-
-    for (const key of keys) {
-      const isSelected = key === activeKey;
-      const card = container.createDiv({
-        cls: `cascade-radio-card${isSelected ? " is-selected" : ""}`,
-      });
-      card.createSpan({ cls: "cascade-radio-card__icon", text: icons[key] });
-      card.createSpan({ text: labels[key] });
-
-      card.addEventListener("click", async () => {
-        ctx.settings.openAnnualOnStartup = false;
-        ctx.settings.openMonthlyOnStartup = false;
-        ctx.settings.openWeeklyOnStartup = false;
-        ctx.settings.openDailyOnStartup = false;
-        if (key !== "none") {
-          (ctx.settings as any)[key] = true;
-        }
-        await ctx.save();
-        ctx.refresh();
-      });
-    }
   }
 
   private renderCard(ctx: SectionContext, icon: string, title: string, render: () => void): void {

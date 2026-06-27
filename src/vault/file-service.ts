@@ -51,6 +51,17 @@ export class FileService {
     return this.vault.getMarkdownFiles().find((file) => file.basename.startsWith(prefix)) ?? null;
   }
 
+  findMarkdownByPredicate(predicate: (file: TFile) => boolean): TFile | null {
+    return this.vault.getMarkdownFiles().find(predicate) ?? null;
+  }
+
+  async findOrCreateFile(path: string, content: string, predicate: (file: TFile) => boolean): Promise<{ file: TFile; actualPath: string }> {
+    const existing = this.getFile(path) ?? this.findMarkdownByPredicate(predicate);
+    if (existing) return { file: existing, actualPath: existing.path };
+    const file = await this.write(path, content);
+    return { file, actualPath: path };
+  }
+
   getFile(path: string): TFile | null {
     const abstract = this.vault.getAbstractFileByPath(normalizePath(path));
     return abstract instanceof TFile ? abstract : null;
