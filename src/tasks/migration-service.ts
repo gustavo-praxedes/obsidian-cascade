@@ -63,7 +63,8 @@ export class MigrationService {
       ? prepareForwardableMigratedBlockPreservingStatus(task.block, task.status)
       : stripRecurrence(prepareForwardableMigratedBlock(task.block));
     const withDate = this.settings.taskSetCreatedDate ? withCreatedDate(prepared, new Date()) : prepared;
-    return moveTypeMarkersToEnd(withGlobalFilter(withDate, this.settings.taskGlobalFilter?.trim() ?? ""));
+    const filter = this.settings.taskGlobalFilter?.trim() ?? "";
+    return this.applyFilterAndMarkers(withDate, filter);
   }
 
   private prepareCarriedBlock(task: TaskBlock): string {
@@ -71,7 +72,20 @@ export class MigrationService {
       ? prepareForwardableMigratedBlockPreservingStatus(task.block, task.status)
       : prepareForwardableMigratedBlock(task.block);
     const withDate = this.settings.taskSetCreatedDate ? withCreatedDate(prepared, new Date()) : prepared;
-    return moveTypeMarkersToEnd(withGlobalFilter(withDate, this.settings.taskGlobalFilter?.trim() ?? ""));
+    const filter = this.settings.taskGlobalFilter?.trim() ?? "";
+    return this.applyFilterAndMarkers(withDate, filter);
+  }
+
+  private applyFilterAndMarkers(block: string, filter: string): string {
+    if (!filter) return moveTypeMarkersToEnd(block);
+    return block
+      .split(/\r?\n/)
+      .map((line) => {
+        const isRoot = /^-\s+\[[^\]]+\]/.test(line);
+        const withFilter = isRoot ? withGlobalFilter(line, filter) : line;
+        return moveTypeMarkersToEnd(withFilter);
+      })
+      .join("\n");
   }
 
   private markTaskMigrated(content: string, task: TaskBlock): string {
@@ -597,7 +611,7 @@ export class MigrationService {
     let previousContent = await this.files.read(previousPath);
     if (!previousContent) return;
 
-    // When weekly is enabled, populate previous daily from weekly file's day section
+    // Populate previous daily from weekly or monthly file's day section
     if (this.paths.weeklyEnabled()) {
       const weeklyPath = this.weeklyPath(date);
       const weekly = await this.files.read(weeklyPath);
@@ -614,7 +628,6 @@ export class MigrationService {
           if (unique.length) {
             previousContent = insertAfterH1Compat(previousContent, unique);
             await this.files.write(previousPath, previousContent);
-            // Mark migrated tasks in weekly
             let updatedWeekly = weekly;
             const prevDayPred = dayHeadingPredicate(prevInfo.dd);
             const tasksToMark = prevDayTasks.filter(
@@ -627,6 +640,37 @@ export class MigrationService {
               updatedWeekly = markEphemeralCancelledTaskBlockInContent(updatedWeekly, task);
             }
             await this.files.write(weeklyPath, updatedWeekly);
+          }
+        }
+      }
+    } else {
+      const monthlyPath = this.monthlyPath(previous);
+      const monthly = await this.files.read(monthlyPath);
+      if (monthly) {
+        const prevInfo = this.paths.dateInfo(previous);
+        const prevDayTasks = extractSectionTasks(monthly, dayHeadingPredicate(prevInfo.dd)).filter(
+          (task) => (task.status === " " || task.status === "/" || task.status === ">") && isDueForDay(task.line, previous),
+        );
+        if (prevDayTasks.length) {
+          const unique = uniqueNewPreparedTasks(
+            extractAllRootTasks(previousContent),
+            prevDayTasks.map((task) => this.prepareForwardedBlock(task)),
+          );
+          if (unique.length) {
+            previousContent = insertAfterH1Compat(previousContent, unique);
+            await this.files.write(previousPath, previousContent);
+            let updatedMonthly = monthly;
+            const prevDayPred = dayHeadingPredicate(prevInfo.dd);
+            const tasksToMark = prevDayTasks.filter(
+              (task) => (task.status === " " || task.status === "/") && unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)),
+            );
+            updatedMonthly = markMigratedInSection(updatedMonthly, prevDayPred, tasksToMark);
+            for (const task of prevDayTasks.filter(
+              (task) => isEphemeralTask(task) && (task.status === " " || task.status === "/"),
+            )) {
+              updatedMonthly = markEphemeralCancelledTaskBlockInContent(updatedMonthly, task);
+            }
+            await this.files.write(monthlyPath, updatedMonthly);
           }
         }
       }

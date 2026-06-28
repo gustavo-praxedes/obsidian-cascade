@@ -68,7 +68,7 @@ export class NoteService {
   async createDaily(date = new Date()): Promise<TFile> {
     await this.createWeekly(date);
     const path = this.paths.dailyPath(date);
-    const existing = this.files.getFile(path);
+    const existing = this.files.getFile(path) ?? this.files.findMarkdownByPredicate((f) => this.paths.isDailyFile(f.basename, date));
     if (existing) {
       await this.repairIfNeeded(existing.path, "daily", date);
       return existing;

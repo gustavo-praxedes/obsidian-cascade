@@ -48,7 +48,9 @@ export function preserveTimeMarker(original: string, processed: string): string 
 }
 
 export function stripRecurrence(line: string): string {
-  return String(line).replace(RECURRENCE_RE, "").replace(/\s+/g, " ").trimEnd();
+  const leading = String(line).match(/^\s*/)?.[0] ?? "";
+  const rest = String(line).slice(leading.length);
+  return leading + rest.replace(RECURRENCE_RE, "").replace(/\s+/g, " ").trimEnd();
 }
 
 export function withOccurrenceDate(line: string, date: Date, marker = occurrenceMarker(line)): string {

@@ -255,6 +255,7 @@ describe("memory vault integration", () => {
         ...DEFAULT_SETTINGS,
         weeklyEnabled: false,
         recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+        taskGlobalFilter: "",
       };
       const paths = new PathService(settings);
       const files = new FileService(vault as any);
@@ -298,6 +299,7 @@ describe("memory vault integration", () => {
       const settings = {
         ...DEFAULT_SETTINGS,
         recurringTasksPath: "02-ARQUIVO/TAREFAS/RECORRENTES.md",
+        taskGlobalFilter: "",
       };
       const paths = new PathService(settings);
       const files = new FileService(vault as any);

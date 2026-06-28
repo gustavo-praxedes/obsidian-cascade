@@ -147,7 +147,7 @@ export class PathService {
   }
 
   isDailyFile(basename: string, date: Date): boolean {
-    return basename === this.dailyBase(date);
+    return normalizeText(basename) === normalizeText(this.dailyBase(date));
   }
 
   renderAnnualLog(date = new Date()): string {
