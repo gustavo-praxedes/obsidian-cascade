@@ -42,6 +42,7 @@ import {
   prepareRecurringTask,
   stripRecurrence,
   uniqueNewPreparedTasks,
+  uniqueNewRawTasks,
   withCreatedDate,
   withDoneDate,
   withGlobalFilter,
@@ -253,7 +254,7 @@ export class MigrationService {
         if (hasUniqueLooseKey(task.line, counts)) {
           annual = annual.replace(task.line, task.line);
         }
-        const unique = uniqueNewPreparedTasks(extractSectionTasks(annual, pred), [task.line]);
+            const unique = uniqueNewRawTasks(extractSectionTasks(annual, pred), [task.line]);
         annual = insertIntoSection(annual, pred, unique);
       }
     }
@@ -593,8 +594,44 @@ export class MigrationService {
     const previous = addDays(date, -offsetDays);
     const previousPath = this.dailyPath(previous);
     const todayPath = this.dailyPath(date);
-    const previousContent = await this.files.read(previousPath);
+    let previousContent = await this.files.read(previousPath);
     if (!previousContent) return;
+
+    // When weekly is enabled, populate previous daily from weekly file's day section
+    if (this.paths.weeklyEnabled()) {
+      const weeklyPath = this.weeklyPath(date);
+      const weekly = await this.files.read(weeklyPath);
+      if (weekly) {
+        const prevInfo = this.paths.dateInfo(previous);
+        const prevDayTasks = extractSectionTasks(weekly, dayHeadingPredicate(prevInfo.dd)).filter(
+          (task) => (task.status === " " || task.status === "/" || task.status === ">") && isDueForDay(task.line, previous),
+        );
+        if (prevDayTasks.length) {
+          const unique = uniqueNewPreparedTasks(
+            extractAllRootTasks(previousContent),
+            prevDayTasks.map((task) => this.prepareForwardedBlock(task)),
+          );
+          if (unique.length) {
+            previousContent = insertAfterH1Compat(previousContent, unique);
+            await this.files.write(previousPath, previousContent);
+            // Mark migrated tasks in weekly
+            let updatedWeekly = weekly;
+            const prevDayPred = dayHeadingPredicate(prevInfo.dd);
+            const tasksToMark = prevDayTasks.filter(
+              (task) => (task.status === " " || task.status === "/") && unique.some((line) => taskLooseKey(line) === taskLooseKey(task.line)),
+            );
+            updatedWeekly = markMigratedInSection(updatedWeekly, prevDayPred, tasksToMark);
+            for (const task of prevDayTasks.filter(
+              (task) => isEphemeralTask(task) && (task.status === " " || task.status === "/"),
+            )) {
+              updatedWeekly = markEphemeralCancelledTaskBlockInContent(updatedWeekly, task);
+            }
+            await this.files.write(weeklyPath, updatedWeekly);
+          }
+        }
+      }
+    }
+
     const todayContent = await this.files.read(todayPath);
     const pending = previousDayCarryTasks(previousContent);
     const scheduledExpired = pending.filter((task) => !metadataDate(task.line, "📅") && /⏳\s*\d{4}-\d{2}-\d{2}/u.test(task.line));

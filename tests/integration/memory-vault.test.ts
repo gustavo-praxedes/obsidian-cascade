@@ -749,4 +749,61 @@ describe("memory vault integration", () => {
     }
   });
 
+  it("cascades same-name recurring tasks on different weekdays through the full chain", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 28, 8, 0));
+    try {
+      const vault = new MemoryVault();
+      const settings = {
+        ...DEFAULT_SETTINGS,
+        recurringTasksPath: "TAREFAS/RECORRENTES.md",
+      };
+      const paths = new PathService(settings);
+      const files = new FileService(vault as any);
+      const repair = new RepairService(paths);
+      const templates = new TemplateService(vault as any, settings);
+      const app = {
+        vault,
+        workspace: {
+          getLeaf: () => ({
+            openFile: async () => {},
+          }),
+        },
+      };
+      const notes = new NoteService(app as any, paths, files, repair, templates, settings);
+
+      const saturday = "- Campo \u{1F501} every week on Saturday \u23F0 08:00 \u{1F51A}";
+      const sunday = "- Campo \u{1F501} every week on Sunday \u23F0 08:00 \u{1F51A}";
+      await files.write(settings.recurringTasksPath, `${saturday}\n${sunday}\n`);
+
+      await notes.createDaily(new Date(2026, 5, 28));
+      const migration = new MigrationService(settings, files, paths, new RecurrenceService(), new LockService(), new LogService({ ...DEFAULT_SETTINGS, loggingEnabled: false }, files));
+      await migration.run(new Date(2026, 5, 28));
+
+      const annual = await files.read(paths.annualPath(new Date(2026, 5, 28)));
+      expect(annual).toContain("every week on Saturday");
+      expect(annual).toContain("every week on Sunday");
+
+      const monthly = await files.read(paths.monthlyPath(new Date(2026, 5, 28)));
+      expect(monthly).toContain("\u{1F4C5} 2026-06-27");
+      expect(monthly).toContain("\u{1F4C5} 2026-06-28");
+
+      const weeklyPath = paths.weeklyPath(new Date(2026, 5, 28));
+      const weekly = await files.read(weeklyPath);
+      expect(weekly).toContain("27 - S\u00C1BADO");
+      expect(weekly).toContain("28 - DOMINGO");
+      expect(weekly).toContain("Campo");
+      const sundaySection = weekly.split("28 - DOMINGO")[1] ?? "";
+      expect(sundaySection).toContain("Campo");
+
+      const dailySaturday = await files.read(paths.dailyPath(new Date(2026, 5, 27)));
+      expect(dailySaturday).toContain("Campo");
+
+      const dailySunday = await files.read(paths.dailyPath(new Date(2026, 5, 28)));
+      expect(dailySunday).toContain("Campo");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
 });

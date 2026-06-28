@@ -1,4 +1,4 @@
-import { formatDate } from "../notes/path-service";
+import { formatDate, normalizeText } from "../notes/path-service";
 import { metadataDate, sectionBounds, taskKey, taskLooseKey, type TaskBlock } from "./task-parser";
 
 const CARRYABLE_STATUSES = new Set([" ", "/"]);
@@ -91,6 +91,24 @@ export function uniqueNewPreparedTasks(existing: TaskBlock[], incoming: string[]
     keys.add(key);
     return true;
   });
+}
+
+export function uniqueNewRawTasks(existing: TaskBlock[], incoming: string[]): string[] {
+  const keys = new Set(existing.map((t) => normalizeRawKey(t.line)));
+  return incoming.filter((line) => {
+    const key = normalizeRawKey(line);
+    if (keys.has(key)) return false;
+    keys.add(key);
+    return true;
+  });
+}
+
+function normalizeRawKey(line: string): string {
+  return normalizeText(line)
+    .replace(/^\s*-\s*\[[^\]]+\]\s*/, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
 }
 
 export function markMigrated(line: string): string {

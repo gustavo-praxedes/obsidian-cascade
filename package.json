@@ -1,6 +1,6 @@
 {
   "name": "obsidian-cascade",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Cascade plugin for Obsidian.",
   "private": true,
   "scripts": {
