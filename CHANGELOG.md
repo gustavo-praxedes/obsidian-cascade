@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.2.0](https://github.com/gustavo-praxedes/obsidian-cascade/compare/v0.1.9...v0.2.0) (2026-06-29)
+
+
+### Features
+
+* sync parent task status with linked files via wikilinks ([a7ea930](https://github.com/gustavo-praxedes/obsidian-cascade/commit/a7ea9307c35f7f7a34494cc15c1e59184dd945ad))
+
 ## [0.1.9](https://github.com/gustavo-praxedes/obsidian-cascade/compare/v0.1.8...v0.1.9) (2026-06-29)
 
 ## [0.1.8](https://github.com/gustavo-praxedes/obsidian-cascade/compare/v0.1.7...v0.1.8) (2026-06-29)
