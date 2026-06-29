@@ -238,6 +238,12 @@ function firstLine(block: string): string {
   return String(block || "").split(/\r?\n/)[0];
 }
 
+const WIKILINK_RE = /\[\[[^\]|]+(?:\|[^\]]+)?\]\]/;
+
+export function extractTasksWithWikilinks(content: string): TaskBlock[] {
+  return extractRootTasks(content).filter((task) => WIKILINK_RE.test(task.text));
+}
+
 function escapeRegExp(value: string): string {
   return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

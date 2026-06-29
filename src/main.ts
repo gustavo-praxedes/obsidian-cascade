@@ -19,6 +19,7 @@ import { RecurrenceService } from "./tasks/recurrence-service";
 import { StatusService } from "./tasks/status-service";
 import { ScheduledTaskService } from "./tasks/scheduled-task-service";
 import { TaskFamilyService } from "./tasks/task-family-service";
+import { LinkedFileService } from "./tasks/linked-file-service";
 import { FileService } from "./vault/file-service";
 import { LockService } from "./vault/lock-service";
 import { RepairService } from "./vault/repair-service";
@@ -57,7 +58,9 @@ export default class CascadePlugin extends Plugin {
     const statuses = new StatusService(this.settings);
     const taskFamilies = new TaskFamilyService(this.app.vault, this.settings);
     const scheduledTasks = new ScheduledTaskService(this.app);
+    const linkedFiles = new LinkedFileService(this.app.vault, this.settings);
     void taskFamilies.prime().catch((error) => console.error("Cascade task snapshot failed", error));
+    void linkedFiles.prime().catch((error) => console.error("Cascade linked files snapshot failed", error));
 
     this.i18n = new I18n(this.settings.language);
     this.addSettingTab(new CascadeSettingTab(this.app, this));
@@ -75,7 +78,7 @@ export default class CascadePlugin extends Plugin {
 
     this.updateCalendarRibbon();
 
-    this.events = new EventRegistry(this.app.vault, normalizer, this.frontmatter, taskFamilies);
+    this.events = new EventRegistry(this.app.vault, normalizer, this.frontmatter, taskFamilies, linkedFiles);
     this.events.register();
 
     this.checkboxMenu = new CheckboxMenu(this.app, statuses);

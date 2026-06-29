@@ -85,6 +85,11 @@ export const DEFAULT_SETTINGS: CascadeSettings = {
   autoCompleteTaskFamilies: true,
   taskGlobalFilter: "#tasks",
 
+  linkedFilesEnabled: true,
+  linkedFilesFilter: "",
+  linkedFilesScanRoot: "",
+  linkedFilesDebounceMs: 250,
+
   essentialStatuses: ESSENTIAL_STATUSES,
   customStatuses: ACCESSORY_STATUSES,
 

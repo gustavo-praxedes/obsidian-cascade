@@ -82,6 +82,11 @@ export interface CascadeSettings {
   autoCompleteTaskFamilies: boolean;
   taskGlobalFilter: string;
 
+  linkedFilesEnabled: boolean;
+  linkedFilesFilter: string;
+  linkedFilesScanRoot: string;
+  linkedFilesDebounceMs: number;
+
   essentialStatuses: StatusDef[];
   customStatuses: StatusDef[];
 

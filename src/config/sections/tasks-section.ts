@@ -61,6 +61,21 @@ export class TasksSection implements SettingsSection {
           .name(ctx.t("taskGlobalFilter"))
           .tooltip(ctx.t("tooltipTaskGlobalFilter"))
           .text("taskGlobalFilter");
+
+        new SettingBuilder(ctx)
+          .name(ctx.t("linkedFilesEnabled"))
+          .tooltip(ctx.t("tooltipLinkedFilesEnabled"))
+          .toggle("linkedFilesEnabled");
+
+        new SettingBuilder(ctx)
+          .name(ctx.t("linkedFilesFilter"))
+          .tooltip(ctx.t("tooltipLinkedFilesFilter"))
+          .text("linkedFilesFilter");
+
+        new SettingBuilder(ctx)
+          .name(ctx.t("linkedFilesScanRoot"))
+          .tooltip(ctx.t("tooltipLinkedFilesScanRoot"))
+          .text("linkedFilesScanRoot");
       }
     });
   }
